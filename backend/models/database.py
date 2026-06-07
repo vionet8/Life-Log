@@ -62,6 +62,7 @@ _SCHEMA = [
         weather      TEXT,
         score        INTEGER,
         score_reason TEXT,
+        entry_type   TEXT NOT NULL DEFAULT 'murmur',
         created_at   TEXT DEFAULT (datetime('now'))
     )""",
     """CREATE TABLE IF NOT EXISTS tasks (
@@ -90,6 +91,13 @@ async def init_db() -> None:
     try:
         await client.execute(
             "ALTER TABLE users ADD COLUMN persona TEXT NOT NULL DEFAULT 'nagi'"
+        )
+    except Exception:
+        pass
+    # マイグレーション: entry_type 列が存在しない場合に追加
+    try:
+        await client.execute(
+            "ALTER TABLE entries ADD COLUMN entry_type TEXT NOT NULL DEFAULT 'murmur'"
         )
     except Exception:
         pass
@@ -183,6 +191,7 @@ def _row_to_entry(row) -> dict:
         "weather":      row["weather"],
         "score":        row["score"],
         "score_reason": row["score_reason"],
+        "entry_type":   row["entry_type"] if "entry_type" in row.keys() else "murmur",
         "created_at":   row["created_at"],
     }
 
@@ -194,16 +203,17 @@ async def create_entry(
     weather: Optional[str] = None,
     score: Optional[int] = None,
     score_reason: Optional[str] = None,
+    entry_type: str = "murmur",
 ) -> int:
     now = _now()
     client = _get_client()
     rs = await client.execute(
         S("""
           INSERT INTO entries
-              (user_id, body, location, weather, score, score_reason, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+              (user_id, body, location, weather, score, score_reason, entry_type, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           """,
-          [user_id, body, location, weather, score, score_reason, now])
+          [user_id, body, location, weather, score, score_reason, entry_type, now])
     )
     return rs.last_insert_rowid
 

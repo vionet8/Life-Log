@@ -58,7 +58,12 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
     turn += 1
 
     if is_end:
-        # Claudeが会話の自然な終わりを判断 → セッションをリセット
+        # 相談内容を振り返り用エントリーとして保存（ユーザー発言のみ）
+        user_msgs = [m["content"] for m in history if m["role"] == "user"]
+        if user_msgs:
+            body = "[相談] " + " / ".join(user_msgs)
+            await db.create_entry(user["id"], body=body, entry_type="consult")
+        # セッションをリセット
         await db.reset_session(user["id"])
         await line.reply(reply_token, clean)
     else:

@@ -136,20 +136,29 @@ def _strip_label(label: str) -> str:
 
 async def _get_topic(user_id: str, current_location: str, current_weather: str) -> str:
     """
-    Tier 1. 前回スコアが低い（≤60）
-    Tier 2. 今日の場所 or 天気が前回と同じ（自宅はスキップ）
+    Tier 1. 前回（別日）スコアが低い（≤60）
+    Tier 2. 別日エントリーと場所 or 天気が一致（自宅・同日はスキップ）
     Tier 3. 曜日・時間帯
     Tier 4. ランダムプール
-    """
-    last = await db.get_last_entries(user_id, limit=3)
 
-    if last and last[0].get("score") is not None and last[0]["score"] <= 60:
-        score = last[0]["score"]
+    ※ 同日エントリーは「当たり前」なので比較対象にしない
+    """
+    last = await db.get_last_entries(user_id, limit=5)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # 今日以外の直近エントリーだけ比較対象にする
+    prev_entries = [e for e in last if e.get("created_at", "")[:10] != today_str]
+
+    # Tier 1: 前回（別日）スコアが低かった
+    if prev_entries and prev_entries[0].get("score") is not None and prev_entries[0]["score"] <= 60:
+        score = prev_entries[0]["score"]
         return f"前回{score}点だったけど、今はどんな感じ？"
 
-    if last:
-        prev_loc     = last[0].get("location", "")
-        prev_weather = last[0].get("weather", "")
+    # Tier 2: 別日と場所・天気が一致
+    if prev_entries:
+        prev = prev_entries[0]
+        prev_loc     = prev.get("location", "")
+        prev_weather = prev.get("weather", "")
 
         if current_location and current_location == prev_loc and current_location != "🏠 自宅":
             name = _strip_label(current_location)
@@ -159,10 +168,12 @@ async def _get_topic(user_id: str, current_location: str, current_weather: str) 
             name = _strip_label(current_weather)
             return f"{name}が続いていますね。気分に変化はありますか？"
 
+    # Tier 3: 曜日・時間帯
     day_topic = _DAY_TOPICS.get((datetime.now().weekday(), _time_of_day()))
     if day_topic:
         return day_topic
 
+    # Tier 4: ランダム
     return random.choice(_TOPIC_POOL)
 
 
