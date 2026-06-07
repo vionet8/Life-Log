@@ -15,6 +15,56 @@ logger = logging.getLogger(__name__)
 PERIOD_LABELS = ["📅 今週", "📆 今月", "🗓️ 今年"]
 FEEDBACK_LABELS = ["👍 OK", "✏️ 修正したい"]
 
+# ─── ペルソナ別メッセージ ─────────────────────────────────────────────────────
+
+_PERIOD_PROMPT = {
+    "yu":    "どの期間で振り返る？",
+    "nagi":  "どの期間で振り返る？😊",
+    "mirai": "振り返る期間を選んで。",
+}
+
+_THINKING = {
+    "yu":    "{period_ja}のレポートを作ってる。\nちょっと待って。",
+    "nagi":  "{period_ja}のレポートを作ってるよ 📊\nもうちょっと待っててね！",
+    "mirai": "{period_ja}のレポートを生成中。\nしばらくそのままでいて。",
+}
+
+_WAIT = {
+    "yu":    "まだ作ってる。\nできたらすぐ送る。",
+    "nagi":  "まだ作ってるとこ😊\nできたらすぐ送るね！",
+    "mirai": "生成中。\n完成したら届けるよ。",
+}
+
+_CLOSE_OK = {
+    "yu":    "よし。また振り返りたいときはいつでも。",
+    "nagi":  "よかった！またいつでも振り返ろうね 📊",
+    "mirai": "記録に向き合えたね。また来てね。",
+}
+
+_CORRECTION_PROMPT = {
+    "yu":    "どこが違った？具体的に教えて。",
+    "nagi":  "どのあたりが違った？教えてね😊",
+    "mirai": "どこが気になった？フィードバックをどうぞ。",
+}
+
+_CORRECTION_DONE = {
+    "yu":    "了解。「{text}」ね。\n次回に活かす。",
+    "nagi":  "ありがとう！「{text}」ね😊\n次のレポートに活かすよ！",
+    "mirai": "「{text}」、受け取った。\n次の記録に反映するよ。",
+}
+
+_FEEDBACK_AGAIN = {
+    "yu":    "レポートの確認をして。",
+    "nagi":  "レポートの確認をお願いします🙏",
+    "mirai": "レポートを確認して、ボタンで教えて。",
+}
+
+_ERROR = {
+    "yu":    "レポート生成でエラーが出た。\nもう一度「振り返り」から試して。",
+    "nagi":  "レポートの生成でエラーが出ちゃった😢\nもう一度「振り返り」から試してね🙏",
+    "mirai": "生成中にエラーが発生した。\n「振り返り」からもう一度試して。",
+}
+
 
 def _period_since(label: str) -> tuple[str, str]:
     """(since_date_str, period_label_ja) を返す。"""
@@ -79,9 +129,10 @@ async def _generate_and_deliver(
         session = await db.get_session(user["id"])
         if session["state"] == "review_generating":
             await db.reset_session(user["id"])
+        persona = user.get("persona", "nagi")
         await line.push(
             user["id"],
-            "レポートの生成中にエラーが発生しました。\nもう一度「📊 振り返り」からお試しください 🙏",
+            _ERROR.get(persona, _ERROR["nagi"]),
         )
 
 
@@ -89,8 +140,9 @@ async def _generate_and_deliver(
 
 async def start(reply_token: str, user: dict) -> None:
     """リッチメニュー「振り返り」タップ時。"""
+    persona = user.get("persona", "nagi")
     await db.set_session(user["id"], "review_period")
-    await line.reply(reply_token, "▼ 振り返りの期間を選んでください", PERIOD_LABELS)
+    await line.reply(reply_token, _PERIOD_PROMPT.get(persona, _PERIOD_PROMPT["nagi"]), PERIOD_LABELS)
 
 
 async def handle(reply_token: str, user: dict, text: str, state: str, context: dict) -> None:
@@ -104,13 +156,8 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         since, period_ja = _period_since(text)
         entries = await db.get_entries(user["id"], since=since)
 
-        thinking_msg = (
-            f"わかりました！\n{period_ja}のレポートを作っています...\n\n"
-            "少々お待ちください 🤔\n（生成中も他の操作はできます）"
-        ) if user.get("persona", "nagi") == "nagi" else (
-            f"承知しました。\n{period_ja}のレポートを生成中です...\n\n"
-            "しばらくお待ちください 🤔\n（生成中も他の操作は可能です）"
-        )
+        persona = user.get("persona", "nagi")
+        thinking_msg = _THINKING.get(persona, _THINKING["nagi"]).format(period_ja=period_ja)
 
         # ① セッションを generating に移して即座に返信
         await db.set_session(user["id"], "review_generating", {"period": text, "period_ja": period_ja})
@@ -122,43 +169,27 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
     # ── 生成中（Claude 処理待ち） ─────────────────────────────────────────────
     elif state == "review_generating":
         # 生成中に別テキストが来た場合は待機を案内（メッセージは保持しない）
-        wait_msg = (
-            "まだレポートを作っているよ 🤔\n"
-            "完成したらすぐ送るね！\n\n"
-            "タスク追加などは下のメニューからどうぞ 😊"
-        ) if user.get("persona", "nagi") == "nagi" else (
-            "レポートを生成中です 🤔\n"
-            "完成次第お送りします。\n\n"
-            "他の操作は下のメニューからどうぞ。"
-        )
-        await line.reply(reply_token, wait_msg)
+        persona = user.get("persona", "nagi")
+        await line.reply(reply_token, _WAIT.get(persona, _WAIT["nagi"]))
 
     # ── フィードバック ────────────────────────────────────────────────────────
     elif state == "review_feedback":
+        persona = user.get("persona", "nagi")
         if text == "✏️ 修正したい":
             await db.set_session(user["id"], "review_correction", context)
-            await line.reply(
-                reply_token,
-                "どの部分が違和感ありましたか？\n具体的に教えていただけると修正します。",
-            )
+            await line.reply(reply_token, _CORRECTION_PROMPT.get(persona, _CORRECTION_PROMPT["nagi"]))
         elif text == "👍 OK":
             await db.reset_session(user["id"])
-            close = "よかった！また振り返りたいときはいつでも 📊" if user.get("persona", "nagi") == "nagi" else "ありがとうございます！また振り返りたいときはいつでも 📊"
-            await line.reply(reply_token, close)
+            await line.reply(reply_token, _CLOSE_OK.get(persona, _CLOSE_OK["nagi"]))
         else:
             # 期待するボタン以外 → ボタンを再提示（メッセージを飲み込まない）
-            await line.reply(
-                reply_token,
-                "レポートの確認をお願いします 🙏\n\n"
-                "他の操作をしたい場合は、下のメニューから選んでください。",
-                FEEDBACK_LABELS,
-            )
+            await line.reply(reply_token, _FEEDBACK_AGAIN.get(persona, _FEEDBACK_AGAIN["nagi"]), FEEDBACK_LABELS)
 
     # ── 修正リクエスト ────────────────────────────────────────────────────────
     elif state == "review_correction":
+        persona = user.get("persona", "nagi")
         await db.reset_session(user["id"])
         await line.reply(
             reply_token,
-            f"フィードバックありがとうございます。\n「{text}」ですね。\n"
-            "次回のレポートに反映するよう心がけます 🙏\n\n（修正機能は今後のアップデートで対応予定です）",
+            _CORRECTION_DONE.get(persona, _CORRECTION_DONE["nagi"]).format(text=text),
         )
