@@ -1,6 +1,7 @@
 """
 LINE Messaging API ラッパー
 """
+import random
 import logging
 import httpx
 from linebot.v3.messaging import (
@@ -10,6 +11,7 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     PushMessageRequest,
     TextMessage,
+    StickerMessage,
     QuickReply,
     QuickReplyItem,
     MessageAction,
@@ -18,6 +20,13 @@ from backend.config import LINE_CHANNEL_ACCESS_TOKEN, RICH_MENU_YU, RICH_MENU_NA
 
 logger = logging.getLogger(__name__)
 _configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
+
+# ペルソナ別スタンプ（package_id, sticker_id）
+_PERSONA_STICKERS = {
+    "yu":    [("1", "13"), ("1", "14"), ("1", "17"), ("2", "2")],
+    "nagi":  [("2", "3"),  ("2", "7"),  ("2", "8"),  ("3", "3")],
+    "mirai": [("1", "7"),  ("2", "14"), ("2", "17"), ("1", "15")],
+}
 
 _PERSONA_MENU_MAP = {
     "yu":    lambda: RICH_MENU_YU,
@@ -58,6 +67,22 @@ async def reply_multi(reply_token: str, texts: list[str]) -> None:
             ReplyMessageRequest(
                 reply_token=reply_token,
                 messages=[TextMessage(text=t) for t in texts[:5]],
+            )
+        )
+
+
+async def reply_with_sticker(reply_token: str, text: str, persona: str = "nagi") -> None:
+    """テキスト + スタンプを返信する。"""
+    pkg, stk = random.choice(_PERSONA_STICKERS.get(persona, _PERSONA_STICKERS["nagi"]))
+    async with AsyncApiClient(_configuration) as api_client:
+        api = AsyncMessagingApi(api_client)
+        await api.reply_message(
+            ReplyMessageRequest(
+                reply_token=reply_token,
+                messages=[
+                    TextMessage(text=text),
+                    StickerMessage(package_id=pkg, sticker_id=stk),
+                ],
             )
         )
 

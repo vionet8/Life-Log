@@ -16,6 +16,44 @@ LOCATION_LABELS = ["🏠 自宅", "🏢 職場", "☕ カフェ", "🚃 移動�
 WEATHER_LABELS = ["☀️ 晴れ", "☁️ 曇り", "☔ 雨", "🌀 低気圧"]
 SCORE_LABELS = ["20", "30", "40", "50", "60", "70", "80", "90", "100"]
 
+# ─── ペルソナ別メッセージ ─────────────────────────────────────────────────────
+
+_WEATHER_Q = {
+    "yu":    "今日の天気は？",
+    "nagi":  "天気はどうだった？☀️",
+    "mirai": "今日の空の様子を教えて。",
+}
+
+_TOPIC_INTRO = {
+    "yu":    "今日のお題：\n「{topic}」\n\n気持ちや出来事、自由に書いて。{note}",
+    "nagi":  "今日はこれについて話してほしいな💡\n「{topic}」\n\nなんでもいいよ、自由に😊",
+    "mirai": "今日の記録テーマ：\n「{topic}」\n\n書き残しておこう。{note}",
+}
+
+_SCORE_Q = {
+    "yu":    "今日は何点？（20〜100）\n正直な数字を出してみて。",
+    "nagi":  "今日って何点くらいだった？（20〜100）\n直感でいいよ！",
+    "mirai": "今日の点数を残しておこう。（20〜100）\nその数字が後で意味を持つかも。",
+}
+
+_SELECT_PLEASE = {
+    "yu":    "ボタンから選んで。",
+    "nagi":  "ボタンで選んでね😊",
+    "mirai": "ボタンから選んでください。",
+}
+
+_TASK_ADDED = {
+    "yu":    "タスクリストに追加した。",
+    "nagi":  "タスクリストに追加したよ📋",
+    "mirai": "タスクとして記録した。未来の自分が確認するよ。",
+}
+
+_TASK_SKIP = {
+    "yu":    "了解。また何かあれば。",
+    "nagi":  "了解😊 またいつでも話しかけてね！",
+    "mirai": "了解。また来てね。",
+}
+
 TASK_PATTERN = re.compile(r"[□\[\s]*(?:todo|TODO)[^\n]*|□\s*[^\n]+", re.IGNORECASE)
 
 
@@ -159,7 +197,7 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
             return
         context["location"] = text
         await db.set_session(user["id"], "murmur_weather", context)
-        await line.reply(reply_token, "▼ 今日の天気は？", WEATHER_LABELS)
+        await line.reply(reply_token, _WEATHER_Q.get(persona, _WEATHER_Q["nagi"]), WEATHER_LABELS)
 
     # ── 天気選択 → お題提示 ───────────────────────────────────────────────────
     elif state == "murmur_weather":
@@ -174,22 +212,16 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
             context.get("location", ""),
             context.get("weather", ""),
         )
-        free_note = "（気にせず自由に書いてもOK！）" if persona == "nagi" else "（もちろん自由に書いてもかまいません）"
-        await line.reply(
-            reply_token,
-            f"💡 今日のお題\n「{topic}」\n\n気持ちや出来事、自由に書いてください。\n{free_note}",
-        )
+        note = "（気にせず自由に書いてもOK！）" if persona == "nagi" else "（自由に書いてもOK）"
+        tmpl = _TOPIC_INTRO.get(persona, _TOPIC_INTRO["nagi"])
+        await line.reply(reply_token, tmpl.format(topic=topic, note=note))
 
     # ── テキスト入力 ──────────────────────────────────────────────────────────
     elif state == "murmur_text":
         context["body"] = text
         if _is_night():
             await db.set_session(user["id"], "murmur_score", context)
-            await line.reply(
-                reply_token,
-                "▼ 今日の点数は？（20〜100）\nその感覚も含めて数字にしてみてください。",
-                SCORE_LABELS,
-            )
+            await line.reply(reply_token, _SCORE_Q.get(persona, _SCORE_Q["nagi"]), SCORE_LABELS)
         else:
             await _save_and_respond(reply_token, user, context)
 
@@ -219,10 +251,10 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         if text == "✅ 追加する":
             await db.create_tasks(user["id"], candidates)
             await db.reset_session(user["id"])
-            await line.reply(reply_token, "タスクリストに追加しました 📋")
+            await line.reply(reply_token, _TASK_ADDED.get(persona, _TASK_ADDED["nagi"]))
         else:
             await db.reset_session(user["id"])
-            await line.reply(reply_token, "了解。また何かあれば気軽に 😊")
+            await line.reply(reply_token, _TASK_SKIP.get(persona, _TASK_SKIP["nagi"]))
 
 
 # ─── 保存 & レスポンス ────────────────────────────────────────────────────────
