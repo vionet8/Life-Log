@@ -15,13 +15,21 @@ from backend.config import TURSO_URL, TURSO_AUTH_TOKEN
 _client: libsql_client.Client | None = None
 
 
+def _normalize_url(url: str) -> str:
+    """libsql:// or スキームなし → https:// に統一"""
+    url = url.strip()
+    if url.startswith("libsql://"):
+        return "https://" + url[len("libsql://"):]
+    if "://" not in url:
+        return "https://" + url
+    return url
+
+
 def _get_client() -> libsql_client.Client:
     global _client
     if _client is None:
-        # libsql:// → https:// に変換して HTTP モードで接続
-        http_url = TURSO_URL.replace("libsql://", "https://")
         _client = libsql_client.create_client(
-            url=http_url,
+            url=_normalize_url(TURSO_URL),
             auth_token=TURSO_AUTH_TOKEN,
         )
     return _client
