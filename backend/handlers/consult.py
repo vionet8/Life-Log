@@ -14,7 +14,7 @@ from backend.services import claude_service as claude
 
 logger = logging.getLogger(__name__)
 
-MAX_TURNS = 8  # このターン数で自然に締める
+END_MARKER = "[END]"  # Claudeが会話終了と判断したときに付けるマーカー
 
 _OPENING = {
     "yu":    "今日はどうしたの？\n話してみて。一緒に整理しよう。",
@@ -40,23 +40,27 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
     history = context.get("messages", [])
     turn = context.get("turn", 0)
 
-    # Claudeに相談メッセージを渡して引き出す返答を得る
+    # Claudeに相談メッセージを渡して返答を得る
     response = await claude.analyze_consult_message(text, history, persona)
+
+    # [END]マーカーを検出（ユーザーには見せない）
+    is_end = END_MARKER in response
+    clean = response.replace(END_MARKER, "").strip()
 
     # 会話履歴を更新（直近10件だけ保持）
     history = history + [
         {"role": "user", "content": text},
-        {"role": "assistant", "content": response},
+        {"role": "assistant", "content": clean},
     ]
     if len(history) > 10:
         history = history[-10:]
 
     turn += 1
 
-    if turn >= MAX_TURNS:
-        # 会話を締めてidle に戻す
+    if is_end:
+        # Claudeが会話の自然な終わりを判断 → セッションをリセット
         await db.reset_session(user["id"])
-        await line.reply(reply_token, response + _CLOSE.get(persona, ""))
+        await line.reply(reply_token, clean)
     else:
         await db.set_session(user["id"], "consult_chat", {"messages": history, "turn": turn})
-        await line.reply(reply_token, response)
+        await line.reply(reply_token, clean)
