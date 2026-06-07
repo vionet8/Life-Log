@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeBot — 3人のAIと話すだけで、人生が整理されていく</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --yu:         #3B5BDB;
+      --yu-light:   #EEF2FF;
+      --yu-mid:     rgba(59,91,219,0.13);
+      --nagi:       #D97706;
+      --nagi-light: #FFFBEB;
+      --nagi-mid:   rgba(217,119,6,0.13);
+      --mirai:      #7C3AED;
+      --mirai-light:#F5F3FF;
+      --mirai-mid:  rgba(124,58,237,0.13);
+      --bg:         #F6F7FB;
+      --white:      #FFFFFF;
+      --text:       #1A2233;
+      --sub:        #64748B;
+      --border:     #E2E8F0;
+      --line:       #06C755;
+      --radius-lg:  20px;
+      --radius-pill:99px;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Noto Sans JP',-apple-system,'Hiragino Sans',sans-serif;
+      background:var(--bg); color:var(--text);
+      line-height:1.75; overflow-x:hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position:sticky; top:0; z-index:200;
+      background:rgba(255,255,255,0.88);
+      backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+      padding:14px 24px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .nav-logo {
+      font-size:1.25rem; font-weight:900; color:var(--text);
+      display:flex; align-items:center; gap:8px; text-decoration:none;
+    }
+    .btn-line-sm {
+      background:var(--line); color:#fff; text-decoration:none;
+      padding:10px 22px; border-radius:var(--radius-pill);
+      font-size:.85rem; font-weight:700;
+      box-shadow:0 3px 12px rgba(6,199,85,.3);
+      transition:transform .2s, box-shadow .2s; white-space:nowrap;
+    }
+    .btn-line-sm:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(6,199,85,.4); }
+
+    /* ── HERO ── */
+    .hero {
+      background:linear-gradient(150deg, #E8F0FF 0%, #EDE8FF 45%, #FFF8E8 100%);
+      padding:72px 24px 80px; text-align:center;
+      position:relative; overflow:hidden;
+    }
+    .hero-deco {
+      position:absolute; font-size:2rem; opacity:.3;
+      animation:floatUp 5s ease-in-out infinite;
+      pointer-events:none; user-select:none;
+    }
+    .hero-deco:nth-child(1){ top:8%;  left:5%;  animation-delay:0s;   }
+    .hero-deco:nth-child(2){ top:15%; right:6%; animation-delay:1.2s; }
+    .hero-deco:nth-child(3){ bottom:22%; left:7%;  animation-delay:2.4s; }
+    .hero-deco:nth-child(4){ bottom:14%; right:5%; animation-delay:.6s;  }
+    @keyframes floatUp {
+      0%,100%{ transform:translateY(0) rotate(-3deg); }
+      50%    { transform:translateY(-14px) rotate(4deg); }
+    }
+
+    .hero-tag {
+      display:inline-block;
+      background:rgba(255,255,255,.8); border:1px solid var(--border);
+      padding:5px 16px; border-radius:var(--radius-pill);
+      font-size:.78rem; color:var(--sub); margin-bottom:24px;
+      backdrop-filter:blur(4px);
+    }
+    .hero h1 {
+      font-size:clamp(1.85rem, 6.5vw, 3.2rem);
+      font-weight:900; letter-spacing:-.03em; line-height:1.25;
+      margin-bottom:18px;
+    }
+    .hero h1 .grad {
+      background:linear-gradient(130deg, var(--yu) 0%, var(--mirai) 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .hero-sub {
+      font-size:clamp(.9rem, 3vw, 1.05rem);
+      color:var(--sub); max-width:400px; margin:0 auto 36px;
+    }
+
+    /* キャラクタープレビュー */
+    .hero-chars {
+      display:flex; justify-content:center; align-items:flex-end;
+      gap:12px; margin-bottom:44px;
+      padding:0 8px;
+    }
+    .hero-char {
+      flex:1; max-width:180px;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 12px 40px rgba(0,0,0,0.18);
+      transition:transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .35s;
+      cursor:pointer;
+    }
+    .hero-char:nth-child(1){ transform:rotate(-4deg) translateY(-10px); }
+    .hero-char:nth-child(2){ transform:rotate(0deg)  translateY(6px);   z-index:2; }
+    .hero-char:nth-child(3){ transform:rotate(4deg)  translateY(-6px);  }
+    .hero-char:hover {
+      transform:rotate(0deg) translateY(-16px) scale(1.04) !important;
+      box-shadow:0 24px 60px rgba(0,0,0,0.22); z-index:10;
+    }
+    .hero-char img { width:100%; display:block; }
+
+    .btn-line-lg {
+      display:inline-flex; align-items:center; gap:10px;
+      background:var(--line); color:#fff; text-decoration:none;
+      padding:18px 46px; border-radius:var(--radius-pill);
+      font-size:1.05rem; font-weight:800;
+      box-shadow:0 4px 28px rgba(6,199,85,.38);
+      transition:transform .2s, box-shadow .2s; margin-bottom:12px;
+    }
+    .btn-line-lg:hover { transform:translateY(-3px); box-shadow:0 8px 36px rgba(6,199,85,.5); }
+    .hero-note { font-size:.74rem; color:var(--sub); }
+
+    /* ── SECTION BASE ── */
+    .sec { padding:80px 24px; }
+    .sec-inner { max-width:640px; margin:0 auto; }
+    .sec-inner-wide { max-width:960px; margin:0 auto; }
+    .sec-label {
+      display:inline-block; font-size:.7rem; font-weight:700;
+      letter-spacing:.1em; padding:4px 13px; border-radius:var(--radius-pill);
+      margin-bottom:12px;
+    }
+    .sec-title {
+      font-size:clamp(1.4rem,4.5vw,2rem);
+      font-weight:900; letter-spacing:-.025em;
+      margin-bottom:12px; line-height:1.3;
+    }
+    .sec-desc {
+      font-size:.92rem; color:var(--sub);
+      margin-bottom:48px; line-height:1.8;
+    }
+    .tc { text-align:center; }
+
+    /* ── PROBLEM ── */
+    .sec-problem { background:#1A2233; color:#fff; }
+    .sec-problem .sec-label { background:rgba(255,255,255,.1); color:rgba(255,255,255,.6); }
+    .sec-problem .sec-title { color:#fff; }
+    .sec-problem .sec-desc  { color:rgba(255,255,255,.55); }
+    .prob-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .prob-card {
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:16px; padding:22px 16px; text-align:center;
+    }
+    .prob-card .ico { font-size:1.9rem; margin-bottom:10px; }
+    .prob-card p   { font-size:.83rem; color:rgba(255,255,255,.78); line-height:1.6; }
+
+    /* ── PERSONAS ── */
+    .sec-personas { background:var(--white); }
+    .sec-personas .sec-label { background:var(--mirai-light); color:var(--mirai); }
+
+    .p-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:24px;
+    }
+    @media(min-width:720px){
+      .p-grid { grid-template-columns:repeat(3,1fr); align-items:start; }
+    }
+
+    .p-card {
+      border-radius:var(--radius-lg); overflow:hidden;
+      border:2px solid transparent;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+      background:var(--white);
+    }
+    .p-card:hover { transform:translateY(-8px); box-shadow:0 20px 48px rgba(0,0,0,.1); }
+    .p-card.yu    { border-color:rgba(59,91,219,.2);  }
+    .p-card.nagi  { border-color:rgba(217,119,6,.2);  }
+    .p-card.mirai { border-color:rgba(124,58,237,.2); }
+
+    .p-card img.p-portrait {
+      width:100%; display:block;
+      border-radius:0;
+    }
+
+    .p-body {
+      padding:18px 16px 20px;
+    }
+    .p-body-label {
+      font-size:.68rem; font-weight:700; letter-spacing:.07em;
+      margin-bottom:10px;
+    }
+    .yu   .p-body-label { color:var(--yu); }
+    .nagi .p-body-label { color:var(--nagi); }
+    .mirai.p-body-label { color:var(--mirai); }
+
+    .p-phrases { display:flex; flex-wrap:wrap; gap:7px; }
+    .p-phrase {
+      border-radius:var(--radius-pill);
+      padding:5px 13px; font-size:.78rem;
+      background:var(--bg);
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
+    }
+
+    /* ── HOW ── */
+    .sec-how { background:var(--bg); }
+    .sec-how .sec-label { background:var(--yu-light); color:var(--yu); }
+    .steps { display:flex; flex-direction:column; }
+    .step { display:flex; gap:18px; align-items:flex-start; padding-bottom:28px; }
+    .step:last-child { padding-bottom:0; }
+    .step-l { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+    .step-num {
+      width:44px; height:44px; border-radius:50%;
+      background:linear-gradient(135deg, var(--yu), var(--mirai));
+      color:#fff; font-weight:900; font-size:1rem;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .step-line {
+      width:2px; flex:1; min-height:32px; margin-top:6px;
+      background:linear-gradient(to bottom, var(--border), transparent);
+    }
+    .step:last-child .step-line { display:none; }
+    .step-body { padding-top:9px; }
+    .step-title { font-size:1rem; font-weight:700; margin-bottom:4px; }
+    .step-desc  { font-size:.86rem; color:var(--sub); }
+
+    /* ── FEATURES ── */
+    .sec-feat { background:var(--white); }
+    .sec-feat .sec-label { background:var(--nagi-light); color:var(--nagi); }
+    .feat-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .feat-card {
+      background:var(--bg); border-radius:16px; padding:22px 18px;
+      transition:transform .2s;
+    }
+    .feat-card:hover { transform:translateY(-3px); }
+    .feat-ico   { font-size:1.9rem; margin-bottom:10px; }
+    .feat-title { font-size:.93rem; font-weight:700; margin-bottom:5px; }
+    .feat-desc  { font-size:.81rem; color:var(--sub); line-height:1.7; }
+
+    /* ── CTA ── */
+    .sec-cta {
+      background:linear-gradient(150deg, #E8F0FF 0%, #EDE8FF 50%, #FFF8E8 100%);
+      text-align:center;
+    }
+    .sec-cta .sec-label { background:rgba(255,255,255,.75); color:var(--sub); }
+    .sec-cta .sec-desc  { margin-bottom:0; }
+    .cta-wrap { margin-top:36px; }
+    .cta-note { font-size:.76rem; color:var(--sub); margin-top:10px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background:var(--text); color:rgba(255,255,255,.45);
+      text-align:center; padding:32px 24px;
+      font-size:.78rem; line-height:2;
+    }
+    footer a { color:rgba(255,255,255,.55); text-decoration:none; }
+    footer a:hover { color:#fff; }
+
+    /* ── FADE IN ── */
+    .fi { opacity:0; transform:translateY(22px); transition:opacity .65s ease, transform .65s ease; }
+    .fi.on { opacity:1; transform:translateY(0); }
+    .fi.d1 { transition-delay:.08s; }
+    .fi.d2 { transition-delay:.16s; }
+    .fi.d3 { transition-delay:.24s; }
+    .fi.d4 { transition-delay:.32s; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:420px){
+      .feat-grid { grid-template-columns:1fr; }
+      .hero-chars { gap:8px; }
+      .hero-char { max-width:110px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#"><span>💬</span> LifeBot</a>
+  <a class="btn-line-sm" href="#">無料で始める</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-deco">💭</div>
+  <div class="hero-deco">✨</div>
+  <div class="hero-deco">📝</div>
+  <div class="hero-deco">🌱</div>
+
+  <p class="hero-tag">相談も、つぶやきも、振り返りも。LINEで完結。</p>
+
+  <h1>3人のAIと話すだけで、<br><span class="grad">人生が、整理されていく。</span></h1>
+
+  <p class="hero-sub">
+    あなたの毎日を記録し、気持ちを整理し、<br>
+    未来へとつなげる3人の相棒。
+  </p>
+
+  <!-- キャラクタープレビュー -->
+  <div class="hero-chars">
+    <div class="hero-char">
+      <img src="/static/yu.png" alt="ユウ">
+    </div>
+    <div class="hero-char">
+      <img src="/static/nagi.png" alt="ナギ">
+    </div>
+    <div class="hero-char">
+      <img src="/static/mirai.png" alt="ミライ">
+    </div>
+  </div>
+
+  <a class="btn-line-lg" href="https://line.me/R/ti/p/%40921vewbm">LINE で友だち追加する</a>
+  <p class="hero-note">1分で始められます・まずは無料でお試しください</p>
+</section>
+
+<!-- PROBLEM -->
+<section class="sec sec-problem">
+  <div class="sec-inner tc">
+    <span class="sec-label fi">こんな日々、ありませんか？</span>
+    <h2 class="sec-title fi d1">忙しいのに、<br>何も残っていない気がする。</h2>
+    <p class="sec-desc fi d2">
+      毎日必死に生きているのに、振り返ると記憶がない。<br>
+      誰かに話したいけど、なかなか話せない。<br>
+      そんな日々の積み重ねが、5年後の自分を作っています。
+    </p>
+    <div class="prob-grid fi d3">
+      <div class="prob-card">
+        <div class="ico">😮‍💨</div>
+        <p>仕事と育児で<br>自分の時間がない</p>
+      </div>
+      <div class="prob-card">
+        <div class="ico">🌀</div>
+        <p>頭の中がいつも<br>ぐるぐるしている</p>
+      </div>
+      <div class="prob-card">
+        <div class="ico">🤐</div>
+        <p>パートナーに<br>言えないことがある</p>
+      </div>
+      <div class="prob-card">
+        <div class="ico">📉</div>
+        <p>成長している実感が<br>まったく持てない</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONAS -->
+<section class="sec sec-personas">
+  <div class="sec-inner-wide">
+    <div class="tc">
+      <span class="sec-label fi">3人のAI相棒</span>
+      <h2 class="sec-title fi d1">今日の気分で、<br>話す相手を選べる。</h2>
+      <p class="sec-desc fi d2">
+        ユウ・ナギ・ミライから選ぶだけ。<br>
+        それぞれ違う視点で、あなたに寄り添います。
+      </p>
+    </div>
+    <div class="p-grid">
+
+      <!-- ユウ -->
+      <div class="p-card yu fi">
+        <img class="p-portrait" src="/static/yu.png" alt="ユウ">
+        <div class="p-body">
+          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-phrases">
+            <span class="p-phrase">先に結論から言うね。</span>
+            <span class="p-phrase">たぶん今の問題はそこじゃない。</span>
+            <span class="p-phrase">選択肢は3つあるよ。</span>
+            <span class="p-phrase">自分ならこうするかな。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ナギ -->
+      <div class="p-card nagi fi d1">
+        <img class="p-portrait" src="/static/nagi.png" alt="ナギ">
+        <div class="p-body">
+          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-phrases">
+            <span class="p-phrase">へぇ、それってどういうこと？</span>
+            <span class="p-phrase">もっと聞いていい？</span>
+            <span class="p-phrase">何が一番嬉しかったの？</span>
+            <span class="p-phrase">それ、面白そう！</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ミライ -->
+      <div class="p-card mirai fi d2">
+        <img class="p-portrait" src="/static/mirai.png" alt="ミライ">
+        <div class="p-body">
+          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-phrases">
+            <span class="p-phrase">半年後の自分が見たら、どう思うかな？</span>
+            <span class="p-phrase">その選択って、5年後にも価値ある？</span>
+            <span class="p-phrase">今週の行動、未来に繋がってそう？</span>
+            <span class="p-phrase">理想の自分に近づいてるよ。</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="sec sec-how">
+  <div class="sec-inner">
+    <div class="tc">
+      <span class="sec-label fi">使い方</span>
+      <h2 class="sec-title fi d1">シンプルだから、続けられる。</h2>
+      <p class="sec-desc fi d2">LINEを開くだけ。アプリのインストール不要。</p>
+    </div>
+    <div class="steps fi d3">
+      <div class="step">
+        <div class="step-l">
+          <div class="step-num">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-title">今日話す相手を選ぶ</div>
+          <p class="step-desc">ユウ・ナギ・ミライから選ぶだけ。気分で変えてOK。毎日の小さな習慣になります。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-l">
+          <div class="step-num">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-title">つぶやく・相談する</div>
+          <p class="step-desc">今日の出来事、悩み、気になること。何でも話しかけてみて。AIが自然な会話で引き出してくれます。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-l">
+          <div class="step-num">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-title">記録されて、意味になる</div>
+          <p class="step-desc">会話は自動で記録・整理されて、あなただけのライフログとして蓄積。週・月単位で振り返れます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="sec sec-feat">
+  <div class="sec-inner">
+    <div class="tc">
+      <span class="sec-label fi">できること</span>
+      <h2 class="sec-title fi d1">毎日の記録が、<br>あなたの資産になる。</h2>
+      <p class="sec-desc fi d2">つぶやきから相談、振り返りまで。全部LINEの中で完結。</p>
+    </div>
+    <div class="feat-grid fi d3">
+      <div class="feat-card">
+        <div class="feat-ico">💬</div>
+        <div class="feat-title">つぶやき</div>
+        <p class="feat-desc">今日の出来事や気持ちを短くつぶやく。AIがお題を出してくれるから、書くことに迷わない。</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-ico">🤝</div>
+        <div class="feat-title">相談</div>
+        <p class="feat-desc">仕事、人間関係、将来のこと。ユウが本質を整理して、具体的な視点を返してくれる。</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-ico">📋</div>
+        <div class="feat-title">タスク整理</div>
+        <p class="feat-desc">会話の中からタスクを自動検知。気づいたら整理されている、ストレスゼロの管理。</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-ico">📊</div>
+        <div class="feat-title">振り返りレポート</div>
+        <p class="feat-desc">週・月単位でミライがあなたの記録を分析。気づいていなかったパターンが見えてくる。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec sec-cta">
+  <div class="sec-inner tc">
+    <span class="sec-label fi">今日から始める</span>
+    <h2 class="sec-title fi d1">その経験が、<br>5年後の幸福度を変えていく。</h2>
+    <p class="sec-desc fi d2">
+      毎日の小さな気づきを積み重ねることが、<br>
+      未来の自分への最大の投資です。
+    </p>
+    <div class="cta-wrap fi d3">
+      <a class="btn-line-lg" href="https://line.me/R/ti/p/%40921vewbm">LINE で友だち追加する</a>
+      <p class="cta-note">まずは無料でお試しください・クレジットカード不要</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p><a href="#">プライバシーポリシー</a>　·　<a href="#">お問い合わせ</a></p>
+  <p style="margin-top:8px;">© 2026 LifeBot</p>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fi').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
