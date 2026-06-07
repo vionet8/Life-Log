@@ -18,7 +18,7 @@ from linebot.v3.webhooks import (
 from linebot.v3 import WebhookParser
 from backend.config import LINE_CHANNEL_SECRET
 from backend.models import database as db
-from backend.handlers import murmur, task, review, settings, profile
+from backend.handlers import murmur, task, review, settings, profile, consult
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -43,6 +43,7 @@ MENU_TRIGGERS = {
 # 状態プレフィックス → ハンドラモジュールのマッピング
 STATE_PREFIX_MAP = {
     "murmur":      murmur,
+    "consult":     consult,
     "task":        task,
     "review":      review,
     "settings":    settings,
@@ -178,8 +179,7 @@ async def _dispatch(event) -> None:
         if trigger == "murmur":
             await murmur.start(reply_token, user)
         elif trigger == "consult":
-            # 相談は murmur と同じフローで、ペルソナがユウの場合に特化した返答になる
-            await murmur.start(reply_token, user)
+            await consult.start(reply_token, user)
         elif trigger == "task":
             await task.start(reply_token, user)
         elif trigger == "review":

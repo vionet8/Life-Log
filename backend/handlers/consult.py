@@ -1,0 +1,62 @@
+"""
+② 相談ハンドラ
+状態遷移: consult_chat → (継続) → idle
+
+つぶやきと違い：
+- 日付・天気・場所は聞かない
+- DBにエントリー記録しない（会話のみ）
+- ペルソナが相手の気持ちを引き出すことに徹する
+"""
+import logging
+from backend.models import database as db
+from backend.services import line_service as line
+from backend.services import claude_service as claude
+
+logger = logging.getLogger(__name__)
+
+MAX_TURNS = 8  # このターン数で自然に締める
+
+_OPENING = {
+    "yu": "相談ね、聞くよ。\n\n今一番頭にあることを話してみて。まず状況を整理しよう。",
+    "nagi": "うん、話して😊\n\n最近何が気になってる？",
+    "mirai": "聞かせて。\n\nどんなことで迷ってるの？",
+}
+
+_CLOSE = {
+    "yu":    "\n\n話してみてどうだった？\n整理できたなら、次は動くだけだよ。",
+    "nagi":  "\n\n話してくれてありがとう😊\nまた何かあればいつでも。",
+    "mirai": "\n\n話してくれてありがとう。\n未来の自分は、今日のこと覚えてるよ。",
+}
+
+
+async def start(reply_token: str, user: dict) -> None:
+    persona = user.get("persona", "nagi")
+    await db.set_session(user["id"], "consult_chat", {"messages": [], "turn": 0})
+    await line.reply(reply_token, _OPENING.get(persona, _OPENING["nagi"]))
+
+
+async def handle(reply_token: str, user: dict, text: str, state: str, context: dict) -> None:
+    persona = user.get("persona", "nagi")
+    history = context.get("messages", [])
+    turn = context.get("turn", 0)
+
+    # Claudeに相談メッセージを渡して引き出す返答を得る
+    response = await claude.analyze_consult_message(text, history, persona)
+
+    # 会話履歴を更新（直近10件だけ保持）
+    history = history + [
+        {"role": "user", "content": text},
+        {"role": "assistant", "content": response},
+    ]
+    if len(history) > 10:
+        history = history[-10:]
+
+    turn += 1
+
+    if turn >= MAX_TURNS:
+        # 会話を締めてidle に戻す
+        await db.reset_session(user["id"])
+        await line.reply(reply_token, response + _CLOSE.get(persona, ""))
+    else:
+        await db.set_session(user["id"], "consult_chat", {"messages": history, "turn": turn})
+        await line.reply(reply_token, response)
