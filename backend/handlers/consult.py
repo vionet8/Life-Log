@@ -4,8 +4,8 @@
 
 つぶやきと違い：
 - 日付・天気・場所は聞かない
-- DBにエントリー記録しない（会話のみ）
-- ペルソナが相手の気持ちを引き出すことに徹する
+- 会話終了時にサマリーをDBに保存（振り返りに反映）
+- ペルソナが相手の気持ちを引き出し、着地まで導く
 """
 import logging
 from backend.models import database as db
@@ -58,10 +58,15 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
     turn += 1
 
     if is_end:
-        # 相談内容を振り返り用エントリーとして保存（ユーザー発言のみ）
-        user_msgs = [m["content"] for m in history if m["role"] == "user"]
-        if user_msgs:
-            body = "[相談] " + " / ".join(user_msgs)
+        # 相談内容をClaudeがサマリー化して保存（振り返りに反映）
+        if history:
+            try:
+                summary = await claude.summarize_consult(history)
+                body = f"[相談] {summary}"
+            except Exception:
+                # サマリー生成失敗時はユーザー発言を結合して保存
+                user_msgs = [m["content"] for m in history if m["role"] == "user"]
+                body = "[相談] " + " / ".join(user_msgs)
             await db.create_entry(user["id"], body=body, entry_type="consult")
         # セッションをリセット
         await db.reset_session(user["id"])
