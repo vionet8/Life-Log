@@ -2,6 +2,7 @@
 Claude API ラッパー
 ユウ / ナギ / ミライ の3ペルソナ対応
 """
+import json
 import anthropic
 from backend.config import ANTHROPIC_API_KEY
 from backend.services import review_stats
@@ -392,6 +393,84 @@ async def analyze_followup_response(original: str, followup: str, persona: str =
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 思考フェーズ（FPRL）分類
+# ══════════════════════════════════════════════════════════════════════════════
+
+_FPRL_CLASSIFY_SYSTEM = """\
+あなたは記録テキストを「思考の4フェーズ」に分類する分析器です。
+各記録について、最も当てはまるフェーズを1つだけ選びます。当てはまらなければ「-」。
+
+フェーズ定義:
+P（問題発見）= 課題・モヤモヤ・不満・うまくいかないことの自覚（例「会議ばかりで時間がない」）
+R（解決案）  = こうしたい/こうすべきという方針・アイデア・計画（例「朝の30分を学習に充てたい」）
+L（学習）    = 学んだ・気づいた・知った・情報を得た（例「AIの記事を読んだ」）
+F（実行）    = 実際に行動した・やった・達成した（例「副業の初案件を進めた」「娘と公園に行った」）
+
+判断のコツ:
+- 「〜したい」「〜すべき」は R（まだ実行していない願望・方針）
+- 「〜した」「〜できた」など完了した行動は F
+- 不満・困りごとの吐露は P
+- 迷ったら、その記録で最も強い動詞・感情で決める
+- 単なる感想で4フェーズに当てはまらなければ「-」
+"""
+
+
+async def classify_entries_fprl(entries: list[dict]) -> list[str]:
+    """
+    つぶやき＋相談の本文を思考フェーズ（P/R/L/F/-）に分類する。
+    入力順と同じ長さのラベル列を返す。失敗時は全て「-」。
+    """
+    items = []
+    for i, e in enumerate(entries):
+        body = (e.get("body", "") or "").replace("\n", " ").strip()
+        items.append(f"{i}: {body[:120]}")
+    listing = "\n".join(items)
+
+    prompt = f"""\
+以下の記録を1件ずつフェーズ分類してください。
+
+{listing}
+
+出力は JSON 配列のみ。各要素は {{"i": 番号, "p": "P|R|L|F|-"}}。
+解説や他の文章は一切書かないこと。例: [{{"i":0,"p":"L"}},{{"i":1,"p":"P"}}]
+"""
+    n = len(entries)
+    labels = ["-"] * n
+    try:
+        resp = await _client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=min(200 + n * 25, 4000),
+            system=_FPRL_CLASSIFY_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = resp.content[0].text.strip()
+
+        # まず正規表現で {"i":N,"p":"X"} を全て救済（JSONが途中で切れていても拾える）
+        import re
+        pairs = re.findall(r'"i"\s*:\s*(\d+)\s*,\s*"p"\s*:\s*"([PRLF\-])"', text)
+        for idx_s, ph in pairs:
+            idx = int(idx_s)
+            if 0 <= idx < n and ph in ("P", "R", "L", "F"):
+                labels[idx] = ph
+
+        # 正規表現で1件も拾えなかった場合のみ、JSON全体パースを試す
+        if all(l == "-" for l in labels):
+            start = text.find("[")
+            end = text.rfind("]")
+            if start != -1 and end != -1:
+                for obj in json.loads(text[start:end + 1]):
+                    idx = obj.get("i")
+                    ph = obj.get("p", "-")
+                    if isinstance(idx, int) and 0 <= idx < n and ph in ("P", "R", "L", "F"):
+                        labels[idx] = ph
+        return labels
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("classify_entries_fprl failed")
+        return labels
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # 振り返りレポート
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -475,6 +554,18 @@ async def generate_review(
 """
         token_budget = 1100
     else:  # rich
+        # 思考フェーズ（FPRL）を分類して事実に追加
+        try:
+            classify_targets = murmur_entries + consult_entries
+            phases = await classify_entries_fprl(classify_targets)
+            phase_stats = review_stats.aggregate_phases(phases)
+            phase_facts = review_stats.phases_to_facts(phase_stats)
+            if phase_facts:
+                facts_block = facts_block + "\n" + phase_facts
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("FPRL aggregation failed")
+
         structure = """\
 ## 構成（記録が充実しているので、深く分析する）
 
@@ -485,20 +576,32 @@ async def generate_review(
    【確定した数値】の曜日別スコア・場所×天気から、最も低い/高い条件を取り上げ、
    「なぜそうなるか」をつぶやき本文を根拠に推論する。数字は【確定した数値】のものだけ使う。
 
-3. 🔍 本音の発見（ここが核心）
-   ・注目ワードの出現件数と「仕事が嫌だ系の回数」を対比させ、
-     表面の言葉と本当の関心のズレを1点、鋭く言語化する。
-   ・話題分布（普段の関心）と、高スコアの日に登場した話題（満たされる条件）を対比し、
-     「頭を占めるもの」と「満たすもの」のズレがあれば指摘する。
-   ・必ず【確定した数値】の数字とつぶやき本文を根拠にする。印象で語らない。
+3. 🧭 思考のクセ（思考フェーズ分布がある場合のみ）
+   【確定した数値】の「思考フェーズ分布」を使い、4フェーズ（問題発見・解決案・学習・実行）の
+   どこに偏り、どこで止まりやすいかを述べる。「構造的傾向」が示されていればそれを軸にする。
+   ※「FPRL」という略語は使わず、平易な日本語で書く。
+   ※ ここは「本人が薄々感じているが言語化できていない構造」を当てるイメージで。
 
-4. 📖 あなたの傾向（自分取扱説明書）
-   調子が上がる条件・崩れるサインを、スコアと本文から読み取って各2〜3個。
+4. 💡 あなたが気づいていない3つの事実（核心・最重要）
+   下記の素材から、「データを見て初めて分かる、本人が意外に思う対比」を厳選して3つ提示する。
+   各事実は「① 〜という言葉/印象 → でも実際のデータは〜 → だから本当は〜かもしれない」の形で、
+   1つ2〜3文。必ず【確定した数値】の数字を根拠にする。
+   使える素材:
+   ・話題分布（頭を占める）vs 高スコアの日の話題（満たす）のズレ
+   ・「仕事が嫌だ」の回数 vs 仕事の話題量
+   ・思考フェーズの偏り（例: 解決案は多いが実行は少ない＝実行不足）
+   ・「○○の話題がある日/ない日のスコア差」（本人が思うストレス源と、実際にスコアを下げている要因のズレ）
+   ・注目ワードの偏り（例:「成長したい」と言うが学習より問題発見の記録が多い）
+   ※「成長実感がないのが課題」のような、本人が相談で既に言っていること＝「知ってる」で終わる指摘は避ける。
+   ※ 必ず一段深い、行動データと自己認識のギャップを突くこと。
 
-5. 💬 来月への問い
+5. 📖 あなたの取扱説明書
+   調子が上がる条件・崩れるサインを、スコアと本文から各2〜3個。
+
+6. 💬 来月への問い
    自分に問いかけるとよさそうな問いを1つだけ。
 """
-        token_budget = 1600
+        token_budget = 2000
 
     prompt = f"""\
 以下は「{period_label}」の記録です。
@@ -531,7 +634,7 @@ LINEで送る振り返りレポートを作成してください。
 
     message = await _client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=token_budget + 200,
+        max_tokens=int(token_budget * 1.6) + 400,
         system=_system_review(persona),
         messages=[{"role": "user", "content": prompt}],
     )

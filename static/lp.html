@@ -385,6 +385,27 @@
     }
     .rd-sub strong { color:#fff; }
 
+    /* 3つの事実リスト */
+    .rfacts { display:flex; flex-direction:column; gap:10px; }
+    .rfact {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+      border-radius:12px; padding:12px 13px;
+    }
+    .rfact-n {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:20px; height:20px; border-radius:50%;
+      background:linear-gradient(135deg,#F43F5E,#A78BFA);
+      color:#fff; font-size:.7rem; font-weight:800; margin-right:7px;
+      vertical-align:middle;
+    }
+    .rfact-h { font-size:.78rem; font-weight:700; color:rgba(255,255,255,.9); margin-bottom:5px; }
+    .rfact-b { font-size:.74rem; line-height:1.7; color:rgba(255,255,255,.55); }
+    .rfact-b strong { color:#F8B4C0; font-weight:700; }
+
+    /* フェーズ凡例 */
+    .rcph { background:linear-gradient(90deg,#A78BFA,#7C3AED); }
+    .rc-note { font-size:.62rem; color:rgba(255,255,255,.3); margin-top:8px; text-align:right; }
+
     /* Conflict */
     .rconf { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
     .rconf-l { flex:1; min-width:80px; }
@@ -766,19 +787,56 @@
         </div>
       </div>
 
-      <!-- ② 本音の発見 -->
-      <div class="rp rp-disc">
-        <div class="rp-t">🔍 記録だからわかった、あなたの本音</div>
-        <div class="rd-main">
-          「<strong>仕事が嫌だ</strong>」という言葉は、<br>
-          この1ヶ月で <span class="rd-big">0</span> 回だった。
+      <!-- ①.5 思考のクセ（FPRL） -->
+      <div class="rp">
+        <div class="rp-t">🧭 思考のクセ（記録を4フェーズに自動分類）</div>
+        <div class="rc">
+          <div class="rcr">
+            <span class="rcd" style="width:60px;font-size:.66rem;">実行</span>
+            <div class="rcw"><div class="rcb rcp" style="width:41%"></div></div>
+            <span class="rcs">41%・9件</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd" style="width:60px;font-size:.66rem;">問題発見</span>
+            <div class="rcw"><div class="rcb rcnu" style="width:36%"></div></div>
+            <span class="rcs">36%・8件</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd" style="width:60px;font-size:.66rem;">解決案</span>
+            <div class="rcw"><div class="rcb rcph" style="width:14%"></div></div>
+            <span class="rcs">14%・3件</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd" style="width:60px;font-size:.66rem;">学習</span>
+            <div class="rcw"><div class="rcb rcph" style="width:9%"></div></div>
+            <span class="rcs">9%・2件</span>
+          </div>
         </div>
-        <div class="rd-sub">
-          つぶやきで最も多い話題は「仕事」（35%）。なのに<strong>「嫌だ」とは一度も書いていない。</strong>
-          一方「AI・学習」は5件、「副業」は4件、「成長したい」も記録に登場した。
-          相談でも「不満はないが成長実感がない」と自分で言語化していた（5/5）。<br><br>
-          本当のストレスは<strong>「成長している実感が持てないこと」</strong>。
-          転職や副業はその解決策の一つかもしれない。でも本質は"場所"ではなく"実感"の問題だ。
+        <div class="ri">
+          💡 「見つける」と「とにかく動く」が多く、<strong>「どうすればいいか考える・体系的に学ぶ」が薄い</strong>。
+          モヤっとしたら即動くタイプ。スピードは強みだが、立ち止まって設計するフェーズが抜けやすい。
+        </div>
+      </div>
+
+      <!-- ② 気づいていない3つの事実 -->
+      <div class="rp rp-disc">
+        <div class="rp-t">💡 あなたが気づいていない3つの事実</div>
+        <div class="rfacts">
+          <div class="rfact">
+            <div class="rfact-h"><span class="rfact-n">1</span>「仕事の話が多い」気がしている</div>
+            <div class="rfact-b">→ 実際は<strong>自己成長39% ＞ 仕事35%</strong>。不満を吐いているのではなく、"何になりたいか"を探している月だった。</div>
+          </div>
+          <div class="rfact">
+            <div class="rfact-h"><span class="rfact-n">2</span>「仕事がストレス源」だと感じている</div>
+            <div class="rfact-b">→ でも<strong>家族がスコアを上げる力（+21点）の方が、仕事が下げる力（−16点）より大きい</strong>。本当に効くのは"仕事対策"より"家族との時間の確保"かもしれない。</div>
+          </div>
+          <div class="rfact">
+            <div class="rfact-h"><span class="rfact-n">3</span>「成長したい」と口にするが…</div>
+            <div class="rfact-b">→ その言葉は1回だけ。なのに<strong>AI学習の記録は5件</strong>。もう動いているのに、自分では「まだ始まってない」と思い込んでいる。</div>
+          </div>
+        </div>
+        <div class="rd-sub" style="margin-top:12px;">
+          すべて<strong>記録の自動集計から導いた事実</strong>。「知ってた」で終わらない、データを見て初めて気づく自分が見えてくる。
         </div>
       </div>
 

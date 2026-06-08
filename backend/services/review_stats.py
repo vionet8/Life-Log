@@ -183,6 +183,27 @@ def compute_stats(entries: list[dict]) -> dict:
     else:
         depth = "thin"
 
+    # ── 話題「あり/なし」の日のスコア差（相関係数の代わりの堅実版）──
+    # 「ストレス源は仕事と思っているが、実際にスコアが下がるのは家族の話が無い日」
+    # のような自己認識とのズレを、相関係数を使わず平均差で示す。
+    topic_score_gap = {}
+    for topic in TOPIC_KEYWORDS:
+        with_topic = [e["score"] for e in scored if topic in _classify_topics(e.get("body", ""))]
+        without_topic = [e["score"] for e in scored if topic not in _classify_topics(e.get("body", ""))]
+        if len(with_topic) >= 2 and len(without_topic) >= 2:
+            avg_with = round(sum(with_topic) / len(with_topic), 1)
+            avg_without = round(sum(without_topic) / len(without_topic), 1)
+            topic_score_gap[topic] = {
+                "with": avg_with,
+                "without": avg_without,
+                "gap": round(avg_with - avg_without, 1),
+                "n_with": len(with_topic),
+            }
+    # 最も「あると上がる」話題
+    biggest_lift = None
+    if topic_score_gap:
+        biggest_lift = max(topic_score_gap.items(), key=lambda kv: kv[1]["gap"])
+
     return {
         "murmur_count": len(murmurs),
         "consult_count": len(consults),
@@ -201,8 +222,79 @@ def compute_stats(entries: list[dict]) -> dict:
         "high_days_count": len(high_days_scored),
         "keyword_hits": dict(keyword_hits.most_common()),
         "work_hate_count": work_hate_count,
+        "topic_score_gap": topic_score_gap,
+        "biggest_lift": biggest_lift,
         "depth": depth,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 思考フェーズ（FPRL）分析
+#   P=問題発見 / R=解決案 / L=学習 / F=実行
+#   ※ 分類は LLM（claude_service.classify_entries_fprl）が行い、
+#     ここでは「分類済みラベルの集計」だけを決定論的に行う。
+# ══════════════════════════════════════════════════════════════════════════════
+
+PHASE_LABELS = {
+    "P": "問題発見",
+    "R": "解決案",
+    "L": "学習",
+    "F": "実行",
+}
+
+
+def aggregate_phases(phases: list[str]) -> dict:
+    """
+    LLMが付与したフェーズラベル列（'P'/'R'/'L'/'F'/'-'）を集計する。
+    '-' は該当なし（無理に分類しない）。
+    """
+    counts = Counter(p for p in phases if p in PHASE_LABELS)
+    total = sum(counts.values())
+    dist = {}
+    if total:
+        for p in ["P", "R", "L", "F"]:
+            c = counts.get(p, 0)
+            dist[p] = {
+                "label": PHASE_LABELS[p],
+                "count": c,
+                "pct": round(c / total * 100),
+            }
+
+    # 構造的な発見フラグ
+    finding = None
+    if total >= 8:
+        f_pct = dist["F"]["pct"]
+        p_pct = dist["P"]["pct"]
+        r_pct = dist["R"]["pct"]
+        l_pct = dist["L"]["pct"]
+        # 問題発見+解決案は多いが実行が極端に少ない＝「実行で止まる」
+        if (p_pct + r_pct) >= 50 and f_pct <= 15:
+            finding = "stuck_before_action"
+        # 学習・情報収集は多いが実行が少ない＝「インプット過多・実践不足」
+        elif l_pct >= 25 and f_pct <= 15:
+            finding = "input_heavy"
+        # 問題発見ばかりで解決案・実行に進まない＝「発見で止まる」
+        elif p_pct >= 45 and (r_pct + f_pct) <= 25:
+            finding = "problem_only"
+
+    return {"dist": dist, "total": total, "finding": finding}
+
+
+def phases_to_facts(phase_stats: dict) -> str:
+    """フェーズ集計を Claude に渡す事実テキストにする。"""
+    if not phase_stats or not phase_stats.get("dist"):
+        return ""
+    dist = phase_stats["dist"]
+    parts = "、".join(f"{v['label']} {v['count']}件({v['pct']}%)" for v in dist.values())
+    line = f"・思考フェーズ分布（記録{phase_stats['total']}件を分類）: {parts}"
+    finding_map = {
+        "stuck_before_action": "  └ 構造的傾向: 問題発見・解決案は多いが「実行」が極端に少ない（実行フェーズで止まりやすい）",
+        "input_heavy": "  └ 構造的傾向: 学習・情報収集に対して「実行」が少ない（インプット過多・実践不足の可能性）",
+        "problem_only": "  └ 構造的傾向: 問題発見が多く、解決案・実行に進みにくい（発見フェーズで止まりやすい）",
+    }
+    if phase_stats.get("finding"):
+        line += "\n" + finding_map[phase_stats["finding"]]
+    return line
 
 
 def stats_to_facts_block(stats: dict) -> str:
@@ -250,5 +342,14 @@ def stats_to_facts_block(stats: dict) -> str:
         lines.append(f"・注目ワードの出現件数: {kh}")
 
     lines.append(f"・「仕事が嫌だ」系の直接表現の回数: {stats['work_hate_count']}回")
+
+    # 話題あり/なしのスコア差（自己認識のズレの材料）
+    if stats.get("topic_score_gap"):
+        for topic, g in stats["topic_score_gap"].items():
+            sign = "+" if g["gap"] >= 0 else ""
+            lines.append(
+                f"・「{topic}」の話題がある日: 平均{g['with']}点 / ない日: 平均{g['without']}点"
+                f"（差 {sign}{g['gap']}点・該当{g['n_with']}件）"
+            )
 
     return "\n".join(lines)

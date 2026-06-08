@@ -73,6 +73,18 @@ async def main():
     print(f"\n[データ深度判定] depth = {stats['depth']}")
 
     print("\n" + "=" * 70)
+    print("①.5 思考フェーズ（FPRL）分類の検証")
+    print("=" * 70)
+    targets = [e for e in ENTRIES if e.get("entry_type", "murmur") == "murmur"] + \
+              [e for e in ENTRIES if e.get("entry_type") == "consult"]
+    phases = await claude_service.classify_entries_fprl(targets)
+    for e, p in zip(targets, phases):
+        label = review_stats.PHASE_LABELS.get(p, "—")
+        print(f"  [{p}/{label}] {e['body'][:40]}")
+    phase_stats = review_stats.aggregate_phases(phases)
+    print("\n" + review_stats.phases_to_facts(phase_stats))
+
+    print("\n" + "=" * 70)
     print("② 実際に生成された振り返りレポート（ミライ）")
     print("=" * 70)
     report = await claude_service.generate_review("2026年5月", ENTRIES, persona="mirai")
