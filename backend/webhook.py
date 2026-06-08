@@ -108,30 +108,75 @@ ONBOARDING_PERSONA_LABELS = [
     "🔮 ミライ（振り返り・成長）",
 ]
 
-HELP_MESSAGE = """\
-❓ LifeBot の使い方
+_HELP_MESSAGE = {
+    "yu": """\
+❓ 使い方
 
-────────────────
 📝 つぶやく
- 今の気持ちや出来事を記録
- AIが自然に深掘りしてくれる
+ 今日あったこと、思ったこと、なんでもいい。
+ 「大したことないかな」は気にしなくていい。
+ 書いたら俺なりに返す。
 
 💬 相談する
- 仕事・人間関係・将来の悩みを相談
- ユウが整理して返してくれる
+ 頭の中が整理できない、ひっかかることがある、
+ そんなとき話しかけて。
 
 ✅ タスク整理
- やること一覧を管理
- 追加・完了・削除
+ やること管理。メモ代わりに使っていい。
 
 📊 振り返り
- 週・月・年のレポートをAIが生成
+ 週・月・年の記録をレポートにする。
 
 ⚙️ 設定
- 話す相手（ペルソナ）を変える
-────────────────
+ 話す相手を変えたいとき。""",
 
-話す相手はいつでも「⚙️ 設定」から変更できます。"""
+    "nagi": """\
+❓ 使い方
+
+📝 つぶやく
+ なんでも書いていいよ！
+ 「今日疲れた」でも「おいしいもの食べた」でも。
+ 書いてくれたら読んで返すね😊
+
+💬 相談する
+ なんか気になってること、誰かに話したいとき。
+ ここで話して。
+
+✅ タスク整理
+ やること管理。メモ代わりにも使えるよ！
+
+📊 振り返り
+ 週・月・年の記録をまとめてレポートにするよ。
+
+⚙️ 設定
+ 話す相手を変えたいとき。""",
+
+    "mirai": """\
+❓ 使い方
+
+📝 つぶやく
+ 今感じていること、気になっていること、何でも。
+ 些細なことでいい。積み重なると未来が変わる。
+
+💬 相談する
+ 迷っていること、頭の中がぐるぐるしているとき。
+ 一緒に整理しよう。
+
+✅ タスク整理
+ やること管理。未来の自分への申し送りとして。
+
+📊 振り返り
+ 週・月・年の記録をレポートにする。
+
+⚙️ 設定
+ 話す相手を変えたいとき。""",
+}
+
+_IDLE_NUDGE = {
+    "yu":    "何かあった？\n「つぶやく」か「相談する」から話しかけて。",
+    "nagi":  "何か書きたいことあった？😊\n「つぶやく」から記録できるよ！",
+    "mirai": "今、何か伝えたいことがある？\n「つぶやく」から始めてみて。",
+}
 
 
 async def _dispatch(event) -> None:
@@ -189,7 +234,8 @@ async def _dispatch(event) -> None:
         elif trigger == "help":
             from backend.services import line_service as line
             await db.reset_session(user["id"])
-            await line.reply(reply_token, HELP_MESSAGE)
+            persona = user.get("persona", "nagi")
+            await line.reply(reply_token, _HELP_MESSAGE.get(persona, _HELP_MESSAGE["nagi"]))
         return
 
     # ─── 進行中の会話を継続 ─────────────────────────────────────────────────
@@ -200,10 +246,11 @@ async def _dispatch(event) -> None:
             await handler_module.handle(reply_token, user, text, state, context)
             return
 
-    # ─── idle 状態でメニュー外のメッセージ ──────────────────────────────────
+    # ─── idle 状態でメニュー外のメッセージ → 温かく誘導 ────────────────────
     from backend.services import line_service as line
+    persona = user.get("persona", "nagi")
     await line.reply(
         reply_token,
-        "メニューから操作してください 😊\n\n"
-        "📝 つぶやく　✅ タスク整理\n📊 振り返り　⚙️ 設定",
+        _IDLE_NUDGE.get(persona, _IDLE_NUDGE["nagi"]),
+        ["📝 つぶやく", "💬 相談する"],
     )

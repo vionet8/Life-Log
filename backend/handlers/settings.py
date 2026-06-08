@@ -80,8 +80,9 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         await db.reset_session(user["id"])
         await line.set_persona_rich_menu(user["id"], new_persona)
         name = PERSONA_NAME[new_persona]
-        await line.reply(
-            reply_token,
-            f"よろしく！{name}だよ。\n\nいつでも下のメニューから話しかけてね 😊\n\n"
-            "📝 つぶやく　💬 相談する\n✅ タスク整理　📊 振り返り",
-        )
+        _ONBOARD_MSG = {
+            "yu": f"ユウだ。よろしく。\n\n「つぶやく」は何でもいい。\n今日あったこと、思ったこと、モヤモヤ、なんでも。\n書いたら俺なりに返す。\n\n「相談する」はひっかかることを一緒に整理したいとき。\nまず気軽に話しかけてみて。",
+            "nagi": f"ナギだよ、よろしく！😊\n\n「つぶやく」はなんでもいいからね！\n「今日疲れた」でも「なんかもやもや」でも全然OK。\n書いてくれたら読んで返すよ。\n\n「相談する」は誰かに話したいことがあるとき。\nまず話しかけてみて！",
+            "mirai": f"ミライだよ。よろしく。\n\n「つぶやく」は些細なことでいい。\n今日感じたこと、気になったこと、なんでも。\n積み重なると未来が変わる。\n\n「相談する」は頭の中がぐるぐるしているとき。\nまず話してみて。",
+        }
+        await line.reply(reply_token, _ONBOARD_MSG.get(new_persona, _ONBOARD_MSG["nagi"]))
