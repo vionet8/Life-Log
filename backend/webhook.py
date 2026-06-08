@@ -84,6 +84,16 @@ async def webhook(
             await _dispatch(event)
         except Exception as e:
             logger.error(f"Event dispatch error: {e}", exc_info=True)
+            # 何らかのエラーでユーザーへの返信が途切れた場合、push で最低限通知する
+            try:
+                if isinstance(event, MessageEvent) and hasattr(event.source, "user_id"):
+                    from backend.services import line_service as line
+                    await line.push(
+                        event.source.user_id,
+                        "ごめん、ちょっとうまくいかなかったみたい🙏\nもう一度話しかけてみて。",
+                    )
+            except Exception:
+                pass  # push も失敗したら諦める
 
     return {"status": "ok"}
 

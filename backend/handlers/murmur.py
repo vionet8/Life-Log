@@ -216,16 +216,26 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
             await line.reply(reply_token, "ボタンから選んでください 🙏", WEATHER_LABELS)
             return
         context["weather"] = text
-        await db.set_session(user["id"], "murmur_text", context)
 
-        topic = await _get_topic(
-            user["id"],
-            context.get("location", ""),
-            context.get("weather", ""),
-        )
+        # _get_topic() が DB 接続エラー等で失敗してもお題は必ず送る
+        try:
+            topic = await _get_topic(
+                user["id"],
+                context.get("location", ""),
+                context.get("weather", ""),
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("_get_topic failed, using fallback topic")
+            topic = random.choice(_TOPIC_POOL)
+
         note = "（気にせず自由に書いてもOK！）" if persona == "nagi" else "（自由に書いてもOK）"
         tmpl = _TOPIC_INTRO.get(persona, _TOPIC_INTRO["nagi"])
-        await line.reply(reply_token, tmpl.format(topic=topic, note=note))
+        msg = tmpl.format(topic=topic, note=note)
+
+        # state 保存 → 返信（順番を意図的にこの順にする）
+        await db.set_session(user["id"], "murmur_text", context)
+        await line.reply(reply_token, msg)
 
     # ── テキスト入力 ──────────────────────────────────────────────────────────
     elif state == "murmur_text":

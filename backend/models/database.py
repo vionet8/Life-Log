@@ -234,7 +234,7 @@ async def get_last_entries(user_id: str, limit: int = 3) -> list[dict]:
     client = _get_client()
     rs = await client.execute(
         S("""
-          SELECT id, user_id, body, location, weather, score, score_reason, created_at
+          SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
           FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
           """,
           [user_id, limit])
@@ -248,7 +248,7 @@ async def get_entries(user_id: str, since: Optional[str] = None) -> list[dict]:
     if since:
         rs = await client.execute(
             S("""
-              SELECT id, user_id, body, location, weather, score, score_reason, created_at
+              SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
               FROM entries WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC
               """,
               [user_id, since])
@@ -256,7 +256,7 @@ async def get_entries(user_id: str, since: Optional[str] = None) -> list[dict]:
     else:
         rs = await client.execute(
             S("""
-              SELECT id, user_id, body, location, weather, score, score_reason, created_at
+              SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
               FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
               """,
               [user_id])
