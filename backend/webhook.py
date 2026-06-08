@@ -233,9 +233,30 @@ async def _dispatch(event) -> None:
             await settings.start(reply_token, user)
         elif trigger == "help":
             from backend.services import line_service as line
-            await db.reset_session(user["id"])
             persona = user.get("persona", "nagi")
+            await db.set_session(user["id"], "help_confirm")
+            _HELP_OPEN = {
+                "yu":    "どうした？\nアプリの使い方、説明しようか？",
+                "nagi":  "どうしたの？😊\nアプリの説明、聞いてみる？",
+                "mirai": "どうしたの？\nアプリについて知りたい？",
+            }
+            await line.reply(reply_token, _HELP_OPEN.get(persona, _HELP_OPEN["nagi"]), ["はい", "いらない"])
+        return
+
+    # ─── ヘルプ確認 ──────────────────────────────────────────────────────────
+    if state == "help_confirm":
+        from backend.services import line_service as line
+        persona = user.get("persona", "nagi")
+        await db.reset_session(user["id"])
+        if text == "はい":
             await line.reply(reply_token, _HELP_MESSAGE.get(persona, _HELP_MESSAGE["nagi"]))
+        else:
+            _HELP_NO = {
+                "yu":    "了解。何かあれば声かけて。",
+                "nagi":  "そっか！何かあったらいつでもね😊",
+                "mirai": "わかった。また来てね。",
+            }
+            await line.reply(reply_token, _HELP_NO.get(persona, _HELP_NO["nagi"]))
         return
 
     # ─── 進行中の会話を継続 ─────────────────────────────────────────────────

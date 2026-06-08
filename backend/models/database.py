@@ -218,6 +218,18 @@ async def create_entry(
     return rs.last_insert_rowid
 
 
+async def delete_entry_by_id(user_id: str, entry_id: int) -> bool:
+    """指定エントリーを削除する。自分のエントリーのみ削除可。削除できたらTrue。"""
+    client = _get_client()
+    rs = await client.execute(
+        S("SELECT id FROM entries WHERE id = ? AND user_id = ?", [entry_id, user_id])
+    )
+    if not rs.rows:
+        return False
+    await client.execute(S("DELETE FROM entries WHERE id = ?", [entry_id]))
+    return True
+
+
 async def get_last_entries(user_id: str, limit: int = 3) -> list[dict]:
     client = _get_client()
     rs = await client.execute(

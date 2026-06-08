@@ -246,6 +246,18 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
 
     # ── フォローアップ ────────────────────────────────────────────────────────
     elif state == "murmur_followup":
+        if text == "↩️ 取り消す":
+            entry_id = context.get("last_entry_id")
+            if entry_id:
+                await db.delete_entry_by_id(user["id"], entry_id)
+            await db.reset_session(user["id"])
+            _UNDO_MSG = {
+                "yu":    "取り消した。",
+                "nagi":  "取り消したよ😊 なかったことにしよう！",
+                "mirai": "取り消した。また書きたくなったらいつでも。",
+            }
+            await line.reply(reply_token, _UNDO_MSG.get(persona, _UNDO_MSG["nagi"]))
+            return
         original_body = context.get("original_body", "")
         ai_reply = await claude.analyze_followup_response(original_body, text, persona)
         await db.reset_session(user["id"])
@@ -259,7 +271,18 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
     # ── タスク検知の確認 ──────────────────────────────────────────────────────
     elif state == "murmur_task_confirm":
         candidates = context.get("task_candidates", [])
-        if text == "✅ 追加する":
+        if text == "↩️ 取り消す":
+            entry_id = context.get("last_entry_id")
+            if entry_id:
+                await db.delete_entry_by_id(user["id"], entry_id)
+            await db.reset_session(user["id"])
+            _UNDO_MSG = {
+                "yu":    "取り消した。",
+                "nagi":  "取り消したよ😊 なかったことにしよう！",
+                "mirai": "取り消した。また書きたくなったらいつでも。",
+            }
+            await line.reply(reply_token, _UNDO_MSG.get(persona, _UNDO_MSG["nagi"]))
+        elif text == "✅ 追加する":
             await db.create_tasks(user["id"], candidates)
             await db.reset_session(user["id"])
             await line.reply(reply_token, _TASK_ADDED.get(persona, _TASK_ADDED["nagi"]))
@@ -273,7 +296,7 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
 async def _save_and_respond(reply_token: str, user: dict, context: dict) -> None:
     persona = user.get("persona", "nagi")
 
-    await db.create_entry(
+    entry_id = await db.create_entry(
         user_id=user["id"],
         body=context.get("body", ""),
         location=context.get("location"),
@@ -308,8 +331,8 @@ async def _save_and_respond(reply_token: str, user: dict, context: dict) -> None
             f"💡 タスクっぽい項目を見つけました！\n\n{candidate_text}\n\n"
             f"タスクリストに追加しますか？"
         )
-        await db.set_session(user["id"], "murmur_task_confirm", {"task_candidates": candidates})
-        await line.reply(reply_token, task_prompt, ["✅ 追加する", "✖️ しない"])
+        await db.set_session(user["id"], "murmur_task_confirm", {"task_candidates": candidates, "last_entry_id": entry_id})
+        await line.reply(reply_token, task_prompt, ["✅ 追加する", "✖️ しない", "↩️ 取り消す"])
     else:
-        await db.set_session(user["id"], "murmur_followup", {"original_body": body})
-        await line.reply(reply_token, f"{saved_msg}\n\n{ai_comment}")
+        await db.set_session(user["id"], "murmur_followup", {"original_body": body, "last_entry_id": entry_id})
+        await line.reply(reply_token, f"{saved_msg}\n\n{ai_comment}", ["↩️ 取り消す"])
