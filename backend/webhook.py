@@ -99,7 +99,7 @@ async def webhook(
 
 
 WELCOME_MESSAGE = """\
-はじめまして！🌱 LifeBot です。
+はじめまして！🌱 LifeLog Bot です。
 
 3人のAIが、あなたの毎日の記録と
 思考の整理をサポートします。
