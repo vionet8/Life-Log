@@ -4,6 +4,7 @@ Claude API ラッパー
 """
 import anthropic
 from backend.config import ANTHROPIC_API_KEY
+from backend.services import review_stats
 
 _client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -405,6 +406,12 @@ async def generate_review(
     murmur_entries = [e for e in entries if e.get("entry_type", "murmur") == "murmur"]
     consult_entries = [e for e in entries if e.get("entry_type") == "consult"]
 
+    # ── ① 決定論的に数値を算出（Claudeには解釈だけさせる）──
+    stats = review_stats.compute_stats(entries)
+    facts_block = review_stats.stats_to_facts_block(stats)
+    depth = stats["depth"]
+
+    # ── ② 生ログ（Claudeが引用するための原文）──
     entry_lines = []
     for e in murmur_entries:
         line = f"[{e['created_at'][:10]}] {e['body']}"
@@ -422,23 +429,82 @@ async def generate_review(
             line += f" ／ {' '.join(meta)}"
         entry_lines.append(line)
 
-    consult_lines = []
-    for e in consult_entries:
-        consult_lines.append(f"[{e['created_at'][:10]}] {e['body']}")
+    consult_lines = [f"[{e['created_at'][:10]}] {e['body']}" for e in consult_entries]
 
     entries_text = "\n".join(entry_lines) if entry_lines else "（つぶやき記録なし）"
-    consult_text = "\n".join(consult_lines) if consult_lines else ""
+    consult_text = "\n".join(consult_lines)
 
     consult_section = ""
     if consult_text:
         consult_section = f"""
 【相談記録（{len(consult_entries)}件）】
 {consult_text}
-
 """
+
+    # ── ③ データ深度ごとに構成を変える（肩透かし防止）──
+    if depth == "thin":
+        structure = """\
+## 構成（記録が少ないので、分析より中身に集中する）
+
+1. 📝 この期間のふりかえり
+   つぶやき・相談から、印象的な言葉を2〜3個引用しながら、この期間どんなことがあったかを短くまとめる。
+   ※ データが少ないので、グラフ的な分析・割合・曜日比較などは一切しない。
+
+2. 💬 ひとこと
+   ユーザーが自分に問いかけるとよさそうなことを1つだけ。
+
+最後に「まだ記録は少ないけど、続けるほど見える景色が変わるよ」という趣旨を、あなたらしい言葉で一言。
+"""
+        token_budget = 700
+    elif depth == "medium":
+        structure = """\
+## 構成
+
+1. 📝 この期間のまとめ
+   印象的なキーワード3〜5個 ＋ 特に印象的な一言を1〜2件引用。
+
+2. 📈 見えてきた傾向
+   【確定した数値】に書かれた事実だけを使って、意味のある傾向を1〜2点。
+   数値が薄い項目（n=2程度）は「まだ傾向とは言い切れないけど」と前置きする。
+
+3. 🔍 思考のパターン
+   つぶやき・相談から思考や気持ちの流れを読み取る。日付や言葉を必ず引用する。
+
+4. 💬 来週への問い
+   自分に問いかけるとよさそうな問いを1つだけ。
+"""
+        token_budget = 1100
+    else:  # rich
+        structure = """\
+## 構成（記録が充実しているので、深く分析する）
+
+1. 📝 この期間のまとめ
+   印象的なキーワード3〜5個 ＋ 特に印象的な一言を1〜2件引用。
+
+2. 📊 感情のパターン
+   【確定した数値】の曜日別スコア・場所×天気から、最も低い/高い条件を取り上げ、
+   「なぜそうなるか」をつぶやき本文を根拠に推論する。数字は【確定した数値】のものだけ使う。
+
+3. 🔍 本音の発見（ここが核心）
+   ・注目ワードの出現件数と「仕事が嫌だ系の回数」を対比させ、
+     表面の言葉と本当の関心のズレを1点、鋭く言語化する。
+   ・話題分布（普段の関心）と、高スコアの日に登場した話題（満たされる条件）を対比し、
+     「頭を占めるもの」と「満たすもの」のズレがあれば指摘する。
+   ・必ず【確定した数値】の数字とつぶやき本文を根拠にする。印象で語らない。
+
+4. 📖 あなたの傾向（自分取扱説明書）
+   調子が上がる条件・崩れるサインを、スコアと本文から読み取って各2〜3個。
+
+5. 💬 来月への問い
+   自分に問いかけるとよさそうな問いを1つだけ。
+"""
+        token_budget = 1600
 
     prompt = f"""\
 以下は「{period_label}」の記録です。
+
+【確定した数値】（システムが算出した事実。ここに無い数字は絶対に作らない）
+{facts_block}
 
 【つぶやき記録（{len(murmur_entries)}件）】
 {entries_text}
@@ -447,36 +513,25 @@ async def generate_review(
 
 LINEで送る振り返りレポートを作成してください。
 
+## 数値の扱い（最重要・絶対厳守）
+- パーセンテージ・点数・回数・割合は【確定した数値】に書かれているものだけを使う。
+- 【確定した数値】に無い数字は一切書かない（「約8割」等の概算も禁止）。
+- 数値を引用するときは、その意味（なぜそうなるか）を必ずつぶやき本文を根拠に説明する。
+- 算出されていない項目（例：場所×天気のデータが無い）には触れず、ある事実だけで語る。
+
 ## 形式のルール
 - LINEのテキストメッセージとして送るため、見やすい改行・空行を使う
 - マークダウン記法（**太字**など）は使わない
-- 全体で800〜1000文字を目安に
-- 記録が少ない場合（3件以下）はデータ分析を省略し、内容に集中する
+- 全体で{token_budget - 200 if token_budget < 1000 else 900}〜{token_budget}文字を目安に
 
-## 構成
+{structure}
 
-1. 📝 この期間のまとめ
-   つぶやき・相談両方から、印象的なキーワードを3〜5個 ＋ 特に印象的な一言を1〜2件引用
-
-2. 📈 データの傾向（つぶやきが4件以上、かつ異なる日にまたがる場合のみ）
-   同じ日の複数エントリーは比較しない（当然同じ条件なので）。
-   「点数の変化」「場所と点数の相関」など、意味のある傾向だけ。
-   「〇〇の日が多かった」など単純集計は書かない。
-
-3. 🔍 思考のパターン
-   つぶやきと相談から、この期間のユーザーの思考・気持ちの流れを読み取る。
-   根拠として日付や言葉を必ず引用する。評価せず観察として届ける。
-   相談があれば「何を悩んでいたか」「どう変化したか」にも触れる。
-
-4. 💬 来週への問い（ユウは「問い」、ナギは「気になること」、ミライは「未来への問い」）
-   ユーザーが自分に問いかけるとよさそうな問いを1つだけ
-
-最後に「この内容に違和感はありますか？」と一言添えてください。
+最後に「この内容に違和感はある？」と、あなたらしい言葉で一言添えてください。
 """
 
     message = await _client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1400,
+        max_tokens=token_budget + 200,
         system=_system_review(persona),
         messages=[{"role": "user", "content": prompt}],
     )

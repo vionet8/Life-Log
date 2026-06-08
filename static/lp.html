@@ -279,6 +279,201 @@
       .hero-chars { gap:8px; }
       .hero-char { max-width:110px; }
     }
+
+    /* ── REPORT SAMPLE ── */
+    .sec-report { background:var(--bg); }
+    .sec-report .sec-label { background:var(--mirai-light); color:var(--mirai); }
+
+    .compare-box {
+      display:flex; flex-direction:column; gap:8px;
+      margin-bottom:32px;
+    }
+    @media(min-width:580px){
+      .compare-box { flex-direction:row; align-items:stretch; gap:14px; }
+    }
+    .compare-vs {
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .compare-vs-txt {
+      font-size:1.1rem; font-weight:900; color:var(--mirai); opacity:.6;
+    }
+    .compare-item { flex:1; border-radius:16px; padding:18px 16px; }
+    .compare-bad  { background:#F8FAFC; border:1.5px solid var(--border); }
+    .compare-good {
+      background:linear-gradient(135deg,#F5F3FF,#EEF2FF);
+      border:1.5px solid rgba(124,58,237,.22);
+    }
+    .compare-lbl { font-size:.68rem; font-weight:700; letter-spacing:.07em; margin-bottom:9px; }
+    .compare-bad  .compare-lbl { color:#94A3B8; }
+    .compare-good .compare-lbl { color:var(--mirai); }
+    .compare-txt { font-size:.84rem; line-height:1.75; }
+    .compare-bad  .compare-txt { color:#94A3B8; font-style:italic; }
+    .compare-good .compare-txt { color:var(--text); font-weight:500; }
+
+    .report-sample-note {
+      text-align:center; font-size:.72rem; color:var(--sub); margin-bottom:10px;
+    }
+
+    /* Report Card (dark) */
+    .report-card {
+      background:#0D0F1C; border-radius:20px;
+      padding:26px 20px;
+      box-shadow:0 24px 80px rgba(124,58,237,.22), 0 4px 20px rgba(0,0,0,.28);
+      color:#fff; position:relative; overflow:hidden;
+    }
+    .report-card::before {
+      content:''; position:absolute; top:-70px; right:-70px;
+      width:240px; height:240px;
+      background:radial-gradient(circle,rgba(124,58,237,.18) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .report-card::after {
+      content:''; position:absolute; bottom:-40px; left:-40px;
+      width:180px; height:180px;
+      background:radial-gradient(circle,rgba(59,91,219,.1) 0%,transparent 70%);
+      pointer-events:none;
+    }
+
+    .rh { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.07); }
+    .rh-name { font-size:1rem; font-weight:800; margin-bottom:3px; }
+    .rh-meta { font-size:.68rem; color:rgba(255,255,255,.35); }
+    .rh-ico  { font-size:2.2rem; }
+
+    .rs { display:flex; gap:6px; margin-bottom:20px; }
+    .rs-item { flex:1; text-align:center; background:rgba(255,255,255,.04); border-radius:10px; padding:10px 4px; }
+    .rs-num  { font-size:1.4rem; font-weight:900; color:#A78BFA; line-height:1; }
+    .rs-lbl  { font-size:.6rem; color:rgba(255,255,255,.35); margin-top:3px; }
+
+    .rp {
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+      border-radius:14px; padding:15px; margin-bottom:12px;
+    }
+    .rp-t { font-size:.7rem; font-weight:700; letter-spacing:.04em; color:rgba(255,255,255,.42); margin-bottom:12px; }
+
+    .rc { display:flex; flex-direction:column; gap:7px; margin-bottom:10px; }
+    .rcr { display:flex; align-items:center; gap:8px; }
+    .rcr-hl { background:rgba(239,68,68,.08); border-radius:7px; padding:3px 5px; margin:-3px -5px; }
+    .rcd    { font-size:.7rem; color:rgba(255,255,255,.38); width:14px; flex-shrink:0; }
+    .rcw    { flex:1; height:6px; background:rgba(255,255,255,.07); border-radius:3px; overflow:hidden; }
+    .rcb    { height:6px; border-radius:3px; }
+    .rcp    { background:linear-gradient(90deg,#34D399,#10B981); }
+    .rcnu   { background:linear-gradient(90deg,#FCD34D,#F59E0B); }
+    .rcm    { background:linear-gradient(90deg,#F87171,#EF4444); }
+    .rcs    { font-size:.62rem; color:rgba(255,255,255,.35); width:88px; text-align:right; flex-shrink:0; }
+
+    .ri {
+      font-size:.74rem; line-height:1.75; color:rgba(255,255,255,.48);
+      border-left:3px solid rgba(167,139,250,.4);
+      padding:8px 10px 8px 12px;
+      border-radius:0 8px 8px 0; background:rgba(255,255,255,.02);
+    }
+    .ri strong { color:rgba(255,255,255,.88); }
+
+    /* Discovery */
+    .rp-disc {
+      background:linear-gradient(135deg,rgba(244,63,94,.09),rgba(124,58,237,.09)) !important;
+      border-color:rgba(244,63,94,.2) !important;
+    }
+    .rd-main {
+      text-align:center; font-size:.96rem; font-weight:700; line-height:1.6;
+      margin-bottom:14px; padding:10px 0;
+    }
+    .rd-big { font-size:2.2rem; font-weight:900; color:#F43F5E; vertical-align:baseline; }
+    .rd-sub {
+      font-size:.8rem; line-height:1.85; color:rgba(255,255,255,.62);
+      background:rgba(255,255,255,.04); border-radius:10px; padding:12px 13px;
+    }
+    .rd-sub strong { color:#fff; }
+
+    /* Conflict */
+    .rconf { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+    .rconf-l { flex:1; min-width:80px; }
+    .rconf-lbl { font-size:.62rem; color:rgba(255,255,255,.32); margin-bottom:6px; }
+    .rconf-val { font-size:1.2rem; font-weight:900; }
+    .rconf-eq  { font-size:1.7rem; color:#F43F5E; font-weight:900; flex-shrink:0; line-height:1; }
+    .rconf-r   { flex:2; min-width:120px; }
+    .rconf-r .rconf-lbl { margin-bottom:8px; }
+    .rmb { display:flex; align-items:center; gap:6px; font-size:.66rem; color:rgba(255,255,255,.42); margin-bottom:5px; }
+    .rmb > span:first-child { width:20px; flex-shrink:0; }
+    .rmb > span:last-child  { width:28px; flex-shrink:0; text-align:right; }
+    .rmb-t { flex:1; height:5px; background:rgba(255,255,255,.07); border-radius:3px; overflow:hidden; }
+    .rmb-b { height:5px; border-radius:3px; }
+
+    /* Manual */
+    .rman-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    @media(max-width:460px){ .rman-grid { grid-template-columns:1fr; } }
+    .rman-item { border-radius:12px; padding:13px; font-size:.74rem; line-height:1.72; }
+    .rman-good { background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.2); }
+    .rman-bad  { background:rgba(251,191,36,.08);  border:1px solid rgba(251,191,36,.2); }
+    .rman-ttl  { font-size:.68rem; font-weight:700; color:rgba(255,255,255,.72); margin-bottom:7px; }
+    .rman-item ul { padding-left:14px; color:rgba(255,255,255,.52); }
+    .rman-item ul li { margin-bottom:2px; }
+    .rman-msg {
+      font-size:.78rem; line-height:1.85; color:rgba(255,255,255,.62);
+      background:linear-gradient(135deg,rgba(124,58,237,.13),rgba(167,139,250,.06));
+      border:1px solid rgba(167,139,250,.18); border-radius:12px; padding:13px 14px;
+    }
+    .rman-msg strong { color:#A78BFA; }
+
+    .rfoot {
+      display:flex; align-items:center; justify-content:space-between;
+      padding-top:13px; border-top:1px solid rgba(255,255,255,.06);
+      margin-top:2px; font-size:.65rem; color:rgba(255,255,255,.22);
+    }
+    .rfoot-badge {
+      background:linear-gradient(135deg,#7C3AED,#A78BFA);
+      color:#fff; font-size:.6rem; font-weight:700;
+      padding:2px 10px; border-radius:var(--radius-pill); letter-spacing:.04em;
+    }
+
+    .report-cta-teaser {
+      text-align:center; margin-top:22px;
+      font-size:.81rem; color:var(--sub); line-height:1.9;
+    }
+    .report-cta-teaser strong { color:var(--mirai); }
+
+    /* Cross-analysis grid */
+    .rx-grid { width:100%; }
+    .rx-header, .rx-row {
+      display:grid; grid-template-columns:72px repeat(3,1fr); gap:4px; margin-bottom:4px;
+    }
+    .rx-corner, .rx-th {
+      font-size:.6rem; color:rgba(255,255,255,.35); text-align:center; padding:4px 2px;
+    }
+    .rx-rh {
+      font-size:.63rem; color:rgba(255,255,255,.48);
+      display:flex; align-items:center; padding:2px 0;
+    }
+    .rx-cell {
+      text-align:center; padding:8px 2px; border-radius:8px;
+      font-size:.77rem; font-weight:700;
+    }
+    .rx-good { background:rgba(52,211,153,.2);  color:#34D399; }
+    .rx-ok   { background:rgba(167,139,250,.15); color:#A78BFA; }
+    .rx-mid  { background:rgba(251,191,36,.12);  color:#FCD34D; }
+    .rx-bad  { background:rgba(244,63,94,.2); color:#F87171; border:1px solid rgba(244,63,94,.3); }
+
+    /* Persona report styles */
+    .persona-report-styles { margin-top:28px; }
+    .prs-title {
+      text-align:center; font-size:.78rem; color:var(--sub);
+      margin-bottom:16px; line-height:1.6;
+    }
+    .prs-title strong { color:var(--text); }
+    .prs-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+    }
+    @media(max-width:520px){ .prs-grid { grid-template-columns:1fr; } }
+    .prs-card { border-radius:14px; padding:15px 13px; }
+    .prs-yu    { background:var(--yu-light);    border:1.5px solid rgba(59,91,219,.2);  }
+    .prs-nagi  { background:var(--nagi-light);  border:1.5px solid rgba(217,119,6,.2);  }
+    .prs-mirai { background:var(--mirai-light); border:1.5px solid rgba(124,58,237,.2); }
+    .prs-ico  { font-size:1.3rem; margin-bottom:4px; }
+    .prs-name { font-size:.65rem; font-weight:700; margin-bottom:9px; }
+    .prs-yu    .prs-name { color:var(--yu);    }
+    .prs-nagi  .prs-name { color:var(--nagi);  }
+    .prs-mirai .prs-name { color:var(--mirai); }
+    .prs-quote { font-size:.72rem; line-height:1.75; color:var(--text); }
   </style>
 </head>
 <body>
@@ -485,6 +680,258 @@
         <p class="feat-desc">週・月単位でミライがあなたの記録を分析。気づいていなかったパターンが見えてくる。</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- REPORT SAMPLE -->
+<section class="sec sec-report">
+  <div class="sec-inner-wide">
+    <div class="tc">
+      <span class="sec-label fi">振り返りレポート</span>
+      <h2 class="sec-title fi d1">あなたが気づいていない、<br>本当の自分が見える。</h2>
+      <p class="sec-desc fi d2">
+        一般的なAIは「お疲れですね、休んでください」で終わる。<br>
+        LifeBot は、<strong>なぜ疲れているのか</strong>を、データから解き明かします。
+      </p>
+    </div>
+
+    <!-- 比較 -->
+    <div class="compare-box fi d3">
+      <div class="compare-item compare-bad">
+        <div class="compare-lbl">😐 一般的なAIの返答</div>
+        <div class="compare-txt">「最近お疲れのようですね。たまにはゆっくり休んでみてください😊」</div>
+      </div>
+      <div class="compare-vs"><span class="compare-vs-txt">vs</span></div>
+      <div class="compare-item compare-good">
+        <div class="compare-lbl">🔮 LifeBot レポートの分析</div>
+        <div class="compare-txt">「水曜の平均スコアは36点で、今月の最低。"また会議"という記録が集中する曜日です。あなたの消耗は"仕事量"ではなく、"自分でコントロールできない時間"の多さから来ている。」</div>
+      </div>
+    </div>
+
+    <!-- Report Card -->
+    <p class="report-sample-note fi">↓ 1ヶ月ほぼ毎日記録した場合のレポート例（架空ユーザーのデモ）<br>
+    <span style="opacity:.7;">数字はすべて記録から自動集計しています。AIの推測ではありません。</span></p>
+    <div class="report-card fi d4">
+
+      <!-- ヘッダー -->
+      <div class="rh">
+        <div>
+          <div class="rh-name">T.K. さん</div>
+          <div class="rh-meta">36歳 · 会社員 · 2児の父 · 2026年5月 月次レポート</div>
+        </div>
+        <div class="rh-ico">🔮</div>
+      </div>
+
+      <!-- 統計 -->
+      <div class="rs">
+        <div class="rs-item"><div class="rs-num">22</div><div class="rs-lbl">つぶやき</div></div>
+        <div class="rs-item"><div class="rs-num">3</div><div class="rs-lbl">相談セッション</div></div>
+        <div class="rs-item"><div class="rs-num">22</div><div class="rs-lbl">記録日数</div></div>
+        <div class="rs-item"><div class="rs-num">57</div><div class="rs-lbl">平均スコア</div></div>
+      </div>
+
+      <!-- ① 感情パターン -->
+      <div class="rp">
+        <div class="rp-t">📊 曜日別の平均スコア（20〜100点）</div>
+        <div class="rc">
+          <div class="rcr">
+            <span class="rcd">月</span>
+            <div class="rcw"><div class="rcb rcnu" style="width:41%"></div></div>
+            <span class="rcs">41点</span>
+          </div>
+          <div class="rcr rcr-hl">
+            <span class="rcd">水</span>
+            <div class="rcw"><div class="rcb rcm" style="width:36%"></div></div>
+            <span class="rcs">36点 ⚠️ 最低</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd">木</span>
+            <div class="rcw"><div class="rcb rcp" style="width:63%"></div></div>
+            <span class="rcs">63点</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd">金</span>
+            <div class="rcw"><div class="rcb rcp" style="width:63%"></div></div>
+            <span class="rcs">63点</span>
+          </div>
+          <div class="rcr">
+            <span class="rcd">日</span>
+            <div class="rcw"><div class="rcb rcp" style="width:73%"></div></div>
+            <span class="rcs">73点 ✨ 最高</span>
+          </div>
+        </div>
+        <div class="ri">
+          💡 水曜は定例会議が重なる曜日。「また水曜。会議で持っていかれた」（5/27）。
+          問題は会議の"量"ではなく、<strong>自分でコントロールできない時間の多さ</strong>がスコアを下げている。
+        </div>
+      </div>
+
+      <!-- ② 本音の発見 -->
+      <div class="rp rp-disc">
+        <div class="rp-t">🔍 記録だからわかった、あなたの本音</div>
+        <div class="rd-main">
+          「<strong>仕事が嫌だ</strong>」という言葉は、<br>
+          この1ヶ月で <span class="rd-big">0</span> 回だった。
+        </div>
+        <div class="rd-sub">
+          つぶやきで最も多い話題は「仕事」（35%）。なのに<strong>「嫌だ」とは一度も書いていない。</strong>
+          一方「AI・学習」は5件、「副業」は4件、「成長したい」も記録に登場した。
+          相談でも「不満はないが成長実感がない」と自分で言語化していた（5/5）。<br><br>
+          本当のストレスは<strong>「成長している実感が持てないこと」</strong>。
+          転職や副業はその解決策の一つかもしれない。でも本質は"場所"ではなく"実感"の問題だ。
+        </div>
+      </div>
+
+      <!-- ③ 頭を占める話題 vs 満たされる話題 -->
+      <div class="rp">
+        <div class="rp-t">⚡ 頭を占めるもの ≠ 満たすもの</div>
+        <div class="rconf">
+          <div class="rconf-r" style="flex:1;">
+            <div class="rconf-lbl">普段のつぶやきの話題（頭を占める）</div>
+            <div class="rmb">
+              <span>自己成長</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:39%;background:#7C3AED;"></div></div>
+              <span>39%</span>
+            </div>
+            <div class="rmb">
+              <span>仕事</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:35%;background:#3B5BDB;"></div></div>
+              <span>35%</span>
+            </div>
+            <div class="rmb">
+              <span>家族</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:22%;background:#D97706;"></div></div>
+              <span>22%</span>
+            </div>
+          </div>
+          <div class="rconf-eq">≠</div>
+          <div class="rconf-r" style="flex:1;">
+            <div class="rconf-lbl">高スコアの日に登場した話題（満たされる）</div>
+            <div class="rmb">
+              <span>自己成長</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:50%;background:#34D399;"></div></div>
+              <span>4日</span>
+            </div>
+            <div class="rmb">
+              <span>家族</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:50%;background:#34D399;"></div></div>
+              <span>4日</span>
+            </div>
+            <div class="rmb">
+              <span>仕事</span>
+              <div class="rmb-t"><div class="rmb-b" style="width:13%;background:#64748B;"></div></div>
+              <span>1日</span>
+            </div>
+          </div>
+        </div>
+        <div class="ri">
+          つぶやきの<strong>35%は仕事</strong>のこと。でも<strong>点数が高かった8日間で、仕事が登場したのはたった1日</strong>。
+          あなたを満たしているのは「学び」と「家族」だ。
+          頭を占めるものと、心を満たすものがズレている——<strong>この差に気づくことが、時間の使い方を変える起点</strong>になる。
+        </div>
+      </div>
+
+      <!-- ④ 自分取扱説明書 -->
+      <div class="rp">
+        <div class="rp-t">📖 あなたの自分取扱説明書</div>
+        <div class="rman-grid">
+          <div class="rman-item rman-good">
+            <div class="rman-ttl">⚡ 調子が上がる時</div>
+            <ul>
+              <li>朝の電車で学習できた日の翌日</li>
+              <li>自分でスケジュールをコントロールできた時</li>
+              <li>小さくても「進んだ感」がある日</li>
+            </ul>
+          </div>
+          <div class="rman-item rman-bad">
+            <div class="rman-ttl">💤 崩れるサイン</div>
+            <ul>
+              <li>「また会議か」が出た翌日</li>
+              <li>夕食を家族と食べられなかった時</li>
+              <li>副業に1週間触れなかった後</li>
+            </ul>
+          </div>
+        </div>
+        <div class="rman-msg">
+          <strong>ミライより：</strong>
+          あなたに必要なのは「休息」ではなく「<strong>小さな前進の実感</strong>」だ。
+          毎日5分でも副業・AI学習に触れることが、週の感情スコアを安定させる鍵になる。
+          水曜を乗り切るための、あなただけのルーティンを一緒に作ってみよう。
+        </div>
+      </div>
+
+      <!-- ⑤ 場所×天気 クロス分析 -->
+      <div class="rp">
+        <div class="rp-t">📍 場所 × 天気 クロス分析（平均スコア / 20〜100点・2件以上）</div>
+        <div class="rx-grid">
+          <div class="rx-header">
+            <div class="rx-corner"></div>
+            <div class="rx-th">☀️ 晴れ</div>
+            <div class="rx-th">☔ 雨</div>
+            <div class="rx-th">☁️ 曇り</div>
+          </div>
+          <div class="rx-row">
+            <div class="rx-rh">🏠 自宅</div>
+            <div class="rx-cell rx-good">87 ✨</div>
+            <div class="rx-cell rx-bad">37 ⚠️</div>
+            <div class="rx-cell rx-ok">67</div>
+          </div>
+          <div class="rx-row">
+            <div class="rx-rh">☕ カフェ</div>
+            <div class="rx-cell rx-good">78</div>
+            <div class="rx-cell rx-mid">—</div>
+            <div class="rx-cell rx-ok">65</div>
+          </div>
+          <div class="rx-row">
+            <div class="rx-rh">🏢 職場</div>
+            <div class="rx-cell rx-mid">—</div>
+            <div class="rx-cell rx-mid">—</div>
+            <div class="rx-cell rx-bad">43</div>
+          </div>
+        </div>
+        <div class="ri" style="margin-top:10px;">
+          💡 <strong>最高は自宅×晴れ（87点）、最低は自宅×雨（37点）</strong>——同じ自宅でも50点差。
+          「在宅で雨。なんか一日中だるかった」（5/23）。
+          あなたにとって<strong>在宅×雨の日は、朝の過ごし方が一日を左右する</strong>。
+          <span style="opacity:.7;">（データが2件に満たない組合せは「—」表示。憶測では埋めません）</span>
+        </div>
+      </div>
+
+      <!-- フッター -->
+      <div class="rfoot">
+        <span>🔮 LifeBot · 月次振り返りレポート · 2026.05</span>
+        <span class="rfoot-badge">Premium</span>
+      </div>
+    </div>
+
+    <!-- 3キャラ比較 -->
+    <div class="persona-report-styles fi">
+      <p class="prs-title">
+        データは同じ。でも<strong>話す相手によって、レポートの視点が変わります。</strong>
+      </p>
+      <div class="prs-grid">
+        <div class="prs-card prs-yu">
+          <div class="prs-ico">🧠</div>
+          <div class="prs-name">ユウ</div>
+          <div class="prs-quote">「水曜の問題を解決する選択肢は3つだ。①会議を隔週に減らす②在宅を火・木に変える③その日の期待値を意図的に下げる。どれが一番現実的？」</div>
+        </div>
+        <div class="prs-card prs-nagi">
+          <div class="prs-ico">☕</div>
+          <div class="prs-name">ナギ</div>
+          <div class="prs-quote">「娘の自転車、見逃しちゃったんだね。その"ごめん"って気持ち、ちゃんと受け取ったよ。来月、一緒にお出かけの日を先に決めちゃうのはどうかな？」</div>
+        </div>
+        <div class="prs-card prs-mirai">
+          <div class="prs-ico">🔮</div>
+          <div class="prs-name">ミライ</div>
+          <div class="prs-quote">「この"コントロールできない時間"というパターン、5年後も続いているとしたら？副業やAI学習は逃げではなく、自律性を取り戻す布石になりえる。」</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="report-cta-teaser fi">
+      最初は軽いふりかえりから。記録が増えるほど、グラフも発見も増えていきます。<br>
+      <strong>背伸びした分析はしません。データがある分だけ、正直に。</strong>
+    </p>
   </div>
 </section>
 
