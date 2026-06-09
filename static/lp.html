@@ -521,7 +521,13 @@
     .prs-yu    { background:var(--yu-light);    border:1.5px solid rgba(59,91,219,.2);  }
     .prs-nagi  { background:var(--nagi-light);  border:1.5px solid rgba(217,119,6,.2);  }
     .prs-mirai { background:var(--mirai-light); border:1.5px solid rgba(124,58,237,.2); }
-    .prs-ico  { font-size:1.3rem; margin-bottom:4px; }
+    .prs-ico  { margin-bottom:8px; }
+    .prs-img  {
+      width:60px; height:60px; border-radius:50%;
+      object-fit:cover; object-position:center top;
+      display:block; margin:0 auto;
+      box-shadow:0 3px 12px rgba(0,0,0,.12);
+    }
     .prs-name { font-size:.65rem; font-weight:700; margin-bottom:9px; }
     .prs-yu    .prs-name { color:var(--yu);    }
     .prs-nagi  .prs-name { color:var(--nagi);  }
@@ -1040,17 +1046,17 @@
       </p>
       <div class="prs-grid">
         <div class="prs-card prs-yu">
-          <div class="prs-ico">🧠</div>
+          <div class="prs-ico"><img class="prs-img" src="/static/yu_solo.png" alt="ユウ"></div>
           <div class="prs-name">ユウ</div>
           <div class="prs-quote">「水曜の問題を解決する選択肢は3つだ。①会議を隔週に減らす②在宅を火・木に変える③その日の期待値を意図的に下げる。どれが一番現実的？」</div>
         </div>
         <div class="prs-card prs-nagi">
-          <div class="prs-ico">☕</div>
+          <div class="prs-ico"><img class="prs-img" src="/static/nagi_solo.png" alt="ナギ"></div>
           <div class="prs-name">ナギ</div>
           <div class="prs-quote">「娘の自転車、見逃しちゃったんだね。その"ごめん"って気持ち、ちゃんと受け取ったよ。来月、一緒にお出かけの日を先に決めちゃうのはどうかな？」</div>
         </div>
         <div class="prs-card prs-mirai">
-          <div class="prs-ico">🔮</div>
+          <div class="prs-ico"><img class="prs-img" src="/static/mirai_solo.png" alt="ミライ"></div>
           <div class="prs-name">ミライ</div>
           <div class="prs-quote">「この"コントロールできない時間"というパターン、5年後も続いているとしたら？副業やAI学習は逃げではなく、自律性を取り戻す布石になりえる。」</div>
         </div>
@@ -1058,7 +1064,7 @@
     </div>
 
     <p class="report-cta-teaser fi">
-      最初は軽いふりかえりから。記録が増えるほど、グラフも発見も増えていきます。<br>
+      最初は軽い振り返りから。記録が増えるほど、グラフも発見も増えていきます。<br>
       <strong>背伸びした分析はしません。データがある分だけ、正直に。</strong>
     </p>
   </div>
