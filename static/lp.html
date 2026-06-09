@@ -256,6 +256,38 @@
     .cta-wrap { margin-top:36px; }
     .cta-note { font-size:.76rem; color:var(--sub); margin-top:10px; }
 
+    .cta-cheer { margin-bottom:20px; }
+    .cta-cheer img {
+      max-width:380px; width:88%;
+      border-radius:24px;
+      box-shadow:0 16px 48px rgba(59,91,219,.13),0 4px 16px rgba(0,0,0,.07);
+    }
+    .cta-cheer-msg {
+      font-size:1.18rem; font-weight:900;
+      margin-bottom:6px; color:var(--text);
+    }
+    .cta-cheer-sub {
+      font-size:.86rem; color:var(--sub);
+      line-height:1.8; margin-bottom:32px;
+    }
+    .cta-cheer-voices {
+      display:flex; gap:10px; justify-content:center;
+      flex-wrap:wrap; margin:16px 0 32px;
+    }
+    .cta-voice {
+      background:#fff; border-radius:var(--radius-pill);
+      padding:8px 18px; font-size:.8rem;
+      box-shadow:0 2px 10px rgba(0,0,0,.07);
+      position:relative;
+    }
+    .cta-voice-name {
+      font-size:.62rem; font-weight:700;
+      margin-bottom:2px;
+    }
+    .cta-voice-yu    .cta-voice-name { color:var(--yu); }
+    .cta-voice-nagi  .cta-voice-name { color:var(--nagi); }
+    .cta-voice-mirai .cta-voice-name { color:var(--mirai); }
+
     /* ── FOOTER ── */
     footer {
       background:var(--text); color:rgba(255,255,255,.45);
@@ -623,9 +655,9 @@
 
       <!-- ユウ -->
       <div class="p-card yu fi">
-        <img class="p-portrait" src="/static/yu.png" alt="ユウ">
+        <img class="p-portrait" src="/static/yu_card.png" alt="ユウ">
         <div class="p-body">
-          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-body-label" style="color:var(--yu);">こんな言葉が返ってくるよ</div>
           <div class="p-phrases">
             <span class="p-phrase">先に結論から言うね。</span>
             <span class="p-phrase">たぶん今の問題はそこじゃない。</span>
@@ -637,9 +669,9 @@
 
       <!-- ナギ -->
       <div class="p-card nagi fi d1">
-        <img class="p-portrait" src="/static/nagi.png" alt="ナギ">
+        <img class="p-portrait" src="/static/nagi_card.png" alt="ナギ">
         <div class="p-body">
-          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-body-label" style="color:var(--nagi);">こんな言葉が返ってくるよ</div>
           <div class="p-phrases">
             <span class="p-phrase">へぇ、それってどういうこと？</span>
             <span class="p-phrase">もっと聞いていい？</span>
@@ -651,9 +683,9 @@
 
       <!-- ミライ -->
       <div class="p-card mirai fi d2">
-        <img class="p-portrait" src="/static/mirai.png" alt="ミライ">
+        <img class="p-portrait" src="/static/mirai_card.png" alt="ミライ">
         <div class="p-body">
-          <div class="p-body-label">こんな風に話してくれるよ</div>
+          <div class="p-body-label" style="color:var(--mirai);">こんな言葉が返ってくるよ</div>
           <div class="p-phrases">
             <span class="p-phrase">半年後の自分が見たら、どう思うかな？</span>
             <span class="p-phrase">その選択って、5年後にも価値ある？</span>
@@ -1035,16 +1067,39 @@
 <!-- CTA -->
 <section class="sec sec-cta">
   <div class="sec-inner tc">
-    <span class="sec-label fi">今日から始める</span>
-    <h2 class="sec-title fi d1">その経験が、<br>5年後の幸福度を変えていく。</h2>
-    <p class="sec-desc fi d2">
-      毎日の小さな気づきを積み重ねることが、<br>
-      未来の自分への最大の投資です。
+
+    <!-- 集合応援 -->
+    <div class="cta-cheer fi">
+      <img src="/static/all_cheer.png" alt="ユウ・ナギ・ミライ">
+    </div>
+
+    <!-- 3人のひとこと -->
+    <div class="cta-cheer-voices fi d1">
+      <div class="cta-voice cta-voice-yu">
+        <div class="cta-voice-name">ユウ</div>
+        「話しかけてくれれば、整理してやるよ。」
+      </div>
+      <div class="cta-voice cta-voice-nagi">
+        <div class="cta-voice-name">ナギ</div>
+        「ずっと待ってたよ、もう！😊」
+      </div>
+      <div class="cta-voice cta-voice-mirai">
+        <div class="cta-voice-name">ミライ</div>
+        「今日の一言が、未来を変えるかもしれない。」
+      </div>
+    </div>
+
+    <span class="sec-label fi d2">今日から始める</span>
+    <h2 class="sec-title fi d2">その積み重ねが、<br>5年後の自分をつくる。</h2>
+    <p class="sec-desc fi d3">
+      毎日の小さな気づきを、話すだけで記録できる。<br>
+      まずは今日の出来事をひとつ、話しかけてみて。
     </p>
     <div class="cta-wrap fi d3">
       <a class="btn-line-lg" href="https://line.me/R/ti/p/%40921vewbm">LINE で友だち追加する</a>
       <p class="cta-note">まずは無料でお試しください・クレジットカード不要</p>
     </div>
+
   </div>
 </section>
 
