@@ -5,7 +5,7 @@
 """
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from backend.models import database as db
 from backend.services import line_service as line
 from backend.services import claude_service as claude
@@ -66,9 +66,12 @@ _ERROR = {
 }
 
 
+_JST = timezone(timedelta(hours=9))
+
+
 def _period_since(label: str) -> tuple[str, str]:
     """(since_date_str, period_label_ja) を返す。"""
-    today = datetime.now()
+    today = datetime.now(_JST)
     if label == "📅 今週":
         since = today - timedelta(days=today.weekday())
         return since.strftime("%Y-%m-%d"), f"{since.strftime('%m/%d')}〜{today.strftime('%m/%d')}"

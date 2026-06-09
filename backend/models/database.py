@@ -3,8 +3,10 @@ Turso (libSQL) データベース初期化とアクセス層
 libsql-client (HTTP ネイティブ async) を使用
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional
+
+_JST = timezone(timedelta(hours=9))
 
 import libsql_client
 from backend.config import TURSO_URL, TURSO_AUTH_TOKEN
@@ -36,7 +38,7 @@ def _get_client() -> libsql_client.Client:
 
 
 def _now() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def S(sql: str, args: list | None = None) -> libsql_client.Statement:

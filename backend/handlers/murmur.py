@@ -7,8 +7,15 @@
 """
 import re
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from backend.models import database as db
+
+_JST = timezone(timedelta(hours=9))
+
+
+def _now_jst() -> datetime:
+    """現在日時をJST（UTC+9）で返す"""
+    return datetime.now(_JST)
 from backend.services import line_service as line
 from backend.services import claude_service as claude
 
@@ -60,12 +67,12 @@ TASK_PATTERN = re.compile(r"[□\[\s]*(?:todo|TODO)[^\n]*|□\s*[^\n]+", re.IGNO
 # ─── 時間帯 ───────────────────────────────────────────────────────────────────
 
 def _is_night() -> bool:
-    hour = datetime.now().hour
+    hour = _now_jst().hour
     return hour >= 18 or hour < 5
 
 
 def _time_of_day() -> str:
-    hour = datetime.now().hour
+    hour = _now_jst().hour
     if hour >= 18 or hour < 5:
         return "night"
     elif hour < 11:
@@ -144,7 +151,7 @@ async def _get_topic(user_id: str, current_location: str, current_weather: str) 
     ※ 同日エントリーは「当たり前」なので比較対象にしない
     """
     last = await db.get_last_entries(user_id, limit=5)
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = _now_jst().strftime("%Y-%m-%d")
 
     # 今日以外の直近エントリーだけ比較対象にする
     prev_entries = [e for e in last if e.get("created_at", "")[:10] != today_str]
@@ -169,7 +176,7 @@ async def _get_topic(user_id: str, current_location: str, current_weather: str) 
             return f"{name}が続いていますね。気分に変化はありますか？"
 
     # Tier 3: 曜日・時間帯
-    day_topic = _DAY_TOPICS.get((datetime.now().weekday(), _time_of_day()))
+    day_topic = _DAY_TOPICS.get((_now_jst().weekday(), _time_of_day()))
     if day_topic:
         return day_topic
 
@@ -315,7 +322,7 @@ async def _save_and_respond(reply_token: str, user: dict, context: dict) -> None
         score_reason=context.get("score_reason"),
     )
 
-    now = datetime.now().strftime("%m/%d %H:%M")
+    now = _now_jst().strftime("%m/%d %H:%M")
     body = context.get("body", "")
     location = context.get("location", "")
     weather = context.get("weather", "")
