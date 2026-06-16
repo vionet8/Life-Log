@@ -156,10 +156,17 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
             await line.reply(reply_token, "ボタンから選んでください 🙏", PERIOD_LABELS)
             return
 
-        since, period_ja = _period_since(text)
-        entries = await db.get_entries(user["id"], since=since)
-
         persona = user.get("persona", "nagi")
+        since, period_ja = _period_since(text)
+
+        try:
+            entries = await db.get_entries(user["id"], since=since)
+        except Exception as e:
+            logger.error(f"get_entries failed for user {user['id']}: {e}", exc_info=True)
+            await db.reset_session(user["id"])
+            await line.reply(reply_token, _ERROR.get(persona, _ERROR["nagi"]))
+            return
+
         thinking_msg = _THINKING.get(persona, _THINKING["nagi"]).format(period_ja=period_ja)
 
         # ① セッションを generating に移して即座に返信

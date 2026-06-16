@@ -97,9 +97,17 @@ async def init_db() -> None:
     except Exception:
         pass
     # マイグレーション: entry_type 列が存在しない場合に追加
+    # NOT NULL は libsql の ALTER TABLE ADD COLUMN では非対応の場合があるため除外
     try:
         await client.execute(
-            "ALTER TABLE entries ADD COLUMN entry_type TEXT NOT NULL DEFAULT 'murmur'"
+            "ALTER TABLE entries ADD COLUMN entry_type TEXT DEFAULT 'murmur'"
+        )
+    except Exception:
+        pass
+    # NULL になっている古い行を 'murmur' に更新
+    try:
+        await client.execute(
+            "UPDATE entries SET entry_type = 'murmur' WHERE entry_type IS NULL"
         )
     except Exception:
         pass
@@ -185,6 +193,10 @@ async def reset_session(user_id: str) -> None:
 # ─── エントリー（つぶやき） ───────────────────────────────────────────────────
 
 def _row_to_entry(row) -> dict:
+    try:
+        entry_type = row["entry_type"] or "murmur"
+    except Exception:
+        entry_type = "murmur"
     return {
         "id":           row["id"],
         "user_id":      row["user_id"],
@@ -193,7 +205,7 @@ def _row_to_entry(row) -> dict:
         "weather":      row["weather"],
         "score":        row["score"],
         "score_reason": row["score_reason"],
-        "entry_type":   row["entry_type"] if "entry_type" in row.keys() else "murmur",
+        "entry_type":   entry_type,
         "created_at":   row["created_at"],
     }
 
@@ -234,35 +246,64 @@ async def delete_entry_by_id(user_id: str, entry_id: int) -> bool:
 
 async def get_last_entries(user_id: str, limit: int = 3) -> list[dict]:
     client = _get_client()
-    rs = await client.execute(
-        S("""
-          SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
-          FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
-          """,
-          [user_id, limit])
-    )
+    try:
+        rs = await client.execute(
+            S("""
+              SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
+              FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+              """,
+              [user_id, limit])
+        )
+    except Exception:
+        # entry_type 列が存在しない旧スキーマへのフォールバック
+        rs = await client.execute(
+            S("""
+              SELECT id, user_id, body, location, weather, score, score_reason, created_at
+              FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+              """,
+              [user_id, limit])
+        )
     return [_row_to_entry(r) for r in rs.rows]
 
 
 async def get_entries(user_id: str, since: Optional[str] = None) -> list[dict]:
     """since: ISO日付文字列 (YYYY-MM-DD)"""
     client = _get_client()
-    if since:
-        rs = await client.execute(
-            S("""
-              SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
-              FROM entries WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC
-              """,
-              [user_id, since])
-        )
-    else:
-        rs = await client.execute(
-            S("""
-              SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
-              FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
-              """,
-              [user_id])
-        )
+    try:
+        if since:
+            rs = await client.execute(
+                S("""
+                  SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
+                  FROM entries WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC
+                  """,
+                  [user_id, since])
+            )
+        else:
+            rs = await client.execute(
+                S("""
+                  SELECT id, user_id, body, location, weather, score, score_reason, entry_type, created_at
+                  FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
+                  """,
+                  [user_id])
+            )
+    except Exception:
+        # entry_type 列が存在しない旧スキーマへのフォールバック
+        if since:
+            rs = await client.execute(
+                S("""
+                  SELECT id, user_id, body, location, weather, score, score_reason, created_at
+                  FROM entries WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC
+                  """,
+                  [user_id, since])
+            )
+        else:
+            rs = await client.execute(
+                S("""
+                  SELECT id, user_id, body, location, weather, score, score_reason, created_at
+                  FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
+                  """,
+                  [user_id])
+            )
     return [_row_to_entry(r) for r in rs.rows]
 
 

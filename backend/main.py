@@ -45,6 +45,11 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
+@app.get("/")
+async def root() -> dict:
+    return {"status": "ok", "app": "Life-Log & Focus"}
+
+
 @app.get("/lp")
 async def lp():
     return FileResponse(str(STATIC_DIR / "lp.html"))
