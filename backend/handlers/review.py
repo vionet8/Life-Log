@@ -12,7 +12,7 @@ from backend.services import claude_service as claude
 
 logger = logging.getLogger(__name__)
 
-PERIOD_LABELS = ["📅 今週", "📆 今月", "🗓️ 今年"]
+PERIOD_LABELS = ["📅 過去7日", "📆 過去1ヶ月", "🗓️ 過去3ヶ月"]
 FEEDBACK_LABELS = ["👍 OK", "✏️ 修正したい"]
 
 # ─── ペルソナ別メッセージ ─────────────────────────────────────────────────────
@@ -72,16 +72,16 @@ _JST = timezone(timedelta(hours=9))
 def _period_since(label: str) -> tuple[str, str]:
     """(since_date_str, period_label_ja) を返す。"""
     today = datetime.now(_JST)
-    if label == "📅 今週":
-        since = today - timedelta(days=today.weekday())
-        return since.strftime("%Y-%m-%d"), f"{since.strftime('%m/%d')}〜{today.strftime('%m/%d')}"
-    elif label == "📆 今月":
-        since = today.replace(day=1)
-        return since.strftime("%Y-%m-%d"), f"{today.strftime('%Y年%m月')}"
-    elif label == "🗓️ 今年":
-        since = today.replace(month=1, day=1)
-        return since.strftime("%Y-%m-%d"), f"{today.strftime('%Y年')}"
-    return None, "現時点まで"
+    if label == "📅 過去7日":
+        since = today - timedelta(days=7)
+        return since.strftime("%Y-%m-%d"), f"過去7日間（{since.strftime('%m/%d')}〜{today.strftime('%m/%d')}）"
+    elif label == "📆 過去1ヶ月":
+        since = today - timedelta(days=30)
+        return since.strftime("%Y-%m-%d"), f"過去1ヶ月（{since.strftime('%m/%d')}〜{today.strftime('%m/%d')}）"
+    elif label == "🗓️ 過去3ヶ月":
+        since = today - timedelta(days=90)
+        return since.strftime("%Y-%m-%d"), f"過去3ヶ月（{since.strftime('%m/%d')}〜{today.strftime('%m/%d')}）"
+    return None, "全期間"
 
 
 # ─── バックグラウンド生成タスク ───────────────────────────────────────────────
