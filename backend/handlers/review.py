@@ -7,6 +7,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from backend.models import database as db
+from backend.models.database import is_premium
 from backend.services import line_service as line
 from backend.services import claude_service as claude
 
@@ -91,6 +92,7 @@ async def _generate_and_deliver(
     period_text: str,
     period_ja: str,
     entries: list,
+    premium: bool = False,
 ) -> None:
     """
     Claude でレポートを生成し push で届ける。
@@ -105,6 +107,7 @@ async def _generate_and_deliver(
             period_label=f"{period_ja}（{len(entries)}件の記録）",
             entries=entries,
             persona=user.get("persona", "nagi"),
+            is_premium=premium,
         )
 
         # 完了時点のセッションを確認
@@ -174,7 +177,7 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         await line.reply(reply_token, thinking_msg)
 
         # ② バックグラウンドでレポート生成・配信（ここで return、webhook は解放される）
-        asyncio.create_task(_generate_and_deliver(user, text, period_ja, entries))
+        asyncio.create_task(_generate_and_deliver(user, text, period_ja, entries, is_premium(user)))
 
     # ── 生成中（Claude 処理待ち） ─────────────────────────────────────────────
     elif state == "review_generating":

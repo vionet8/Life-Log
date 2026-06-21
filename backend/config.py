@@ -10,6 +10,9 @@ TURSO_URL:        str = os.environ["TURSO_URL"]
 TURSO_AUTH_TOKEN: str = os.environ["TURSO_AUTH_TOKEN"]
 APP_ENV: str = os.getenv("APP_ENV", "development")
 
+# 管理者キー（/admin/ambassador?key=ADMIN_KEY でアクセス）
+ADMIN_KEY: str = os.getenv("ADMIN_KEY", "")
+
 # ペルソナ別リッチメニューID（setup_rich_menus.py で生成後に .env へ設定）
 RICH_MENU_YU:    str = os.getenv("RICH_MENU_YU", "")
 RICH_MENU_NAGI:  str = os.getenv("RICH_MENU_NAGI", "")

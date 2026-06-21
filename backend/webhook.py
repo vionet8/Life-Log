@@ -18,7 +18,7 @@ from linebot.v3.webhooks import (
 from linebot.v3 import WebhookParser
 from backend.config import LINE_CHANNEL_SECRET
 from backend.models import database as db
-from backend.handlers import murmur, task, review, settings, profile, consult
+from backend.handlers import murmur, task, review, settings, profile, consult, ambassador
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,18 +26,19 @@ parser = WebhookParser(LINE_CHANNEL_SECRET)
 
 # リッチメニューのキーワード → ハンドラ起動マッピング
 MENU_TRIGGERS = {
-    "つぶやく":      "murmur",
-    "📝 つぶやく":   "murmur",
-    "相談する":      "consult",
-    "💬 相談する":   "consult",
-    "タスク整理":    "task",
-    "✅ タスク整理": "task",
-    "振り返り":      "review",
-    "📊 振り返り":   "review",
-    "設定":          "settings",
-    "⚙️ 設定":      "settings",
-    "ヘルプ":        "help",
-    "❓ ヘルプ":     "help",
+    "つぶやく":          "murmur",
+    "📝 つぶやく":       "murmur",
+    "相談する":          "consult",
+    "💬 相談する":       "consult",
+    "タスク整理":        "task",
+    "✅ タスク整理":     "task",
+    "振り返り":          "review",
+    "📊 振り返り":       "review",
+    "設定":              "settings",
+    "⚙️ 設定":          "settings",
+    "ヘルプ":            "help",
+    "❓ ヘルプ":         "help",
+    "アンバサダー申請":  "ambassador",
 }
 
 # 状態プレフィックス → ハンドラモジュールのマッピング
@@ -241,6 +242,8 @@ async def _dispatch(event) -> None:
             await review.start(reply_token, user)
         elif trigger == "settings":
             await settings.start(reply_token, user)
+        elif trigger == "ambassador":
+            await ambassador.start(reply_token, user)
         elif trigger == "help":
             from backend.services import line_service as line
             persona = user.get("persona", "nagi")

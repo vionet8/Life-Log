@@ -89,22 +89,30 @@ _SCHEMA = [
 async def init_db() -> None:
     client = _get_client()
     await client.batch(_SCHEMA)
-    # マイグレーション: persona 列が存在しない場合に追加
+    # マイグレーション: persona 列
     try:
         await client.execute(
             "ALTER TABLE users ADD COLUMN persona TEXT NOT NULL DEFAULT 'nagi'"
         )
     except Exception:
         pass
-    # マイグレーション: entry_type 列が存在しない場合に追加
-    # NOT NULL は libsql の ALTER TABLE ADD COLUMN では非対応の場合があるため除外
+    # マイグレーション: アンバサダープラン関連列
+    for col_sql in [
+        "ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'free'",
+        "ALTER TABLE users ADD COLUMN plan_expires_at TEXT",
+        "ALTER TABLE users ADD COLUMN ambassador_applied_at TEXT",
+    ]:
+        try:
+            await client.execute(col_sql)
+        except Exception:
+            pass
+    # マイグレーション: entry_type 列
     try:
         await client.execute(
             "ALTER TABLE entries ADD COLUMN entry_type TEXT DEFAULT 'murmur'"
         )
     except Exception:
         pass
-    # NULL になっている古い行を 'murmur' に更新
     try:
         await client.execute(
             "UPDATE entries SET entry_type = 'murmur' WHERE entry_type IS NULL"
@@ -116,19 +124,39 @@ async def init_db() -> None:
 # ─── ユーザー ─────────────────────────────────────────────────────────────────
 
 def _row_to_user(row) -> dict:
+    def _get(key, default=None):
+        try:
+            return row[key]
+        except Exception:
+            return default
     return {
-        "id":           row["id"],
-        "display_name": row["display_name"],
-        "tone":         row["tone"],
-        "persona":      row["persona"],
-        "created_at":   row["created_at"],
+        "id":                     row["id"],
+        "display_name":           row["display_name"],
+        "tone":                   row["tone"],
+        "persona":                row["persona"],
+        "plan":                   _get("plan", "free") or "free",
+        "plan_expires_at":        _get("plan_expires_at"),
+        "ambassador_applied_at":  _get("ambassador_applied_at"),
+        "created_at":             row["created_at"],
     }
+
+
+def is_premium(user: dict) -> bool:
+    """アンバサダープランが有効かどうかを返す"""
+    if user.get("plan") != "ambassador":
+        return False
+    expires = user.get("plan_expires_at")
+    if expires is None:
+        return True  # 永続
+    return _now() <= expires
 
 
 async def get_or_create_user(user_id: str, display_name: str) -> dict:
     client = _get_client()
     rs = await client.execute(
-        S("SELECT id, display_name, tone, persona, created_at FROM users WHERE id = ?",
+        S("""SELECT id, display_name, tone, persona,
+                    plan, plan_expires_at, ambassador_applied_at, created_at
+             FROM users WHERE id = ?""",
           [user_id])
     )
     if rs.rows:
@@ -139,7 +167,9 @@ async def get_or_create_user(user_id: str, display_name: str) -> dict:
         S("INSERT INTO sessions (user_id) VALUES (?)", [user_id]),
     ])
     rs = await client.execute(
-        S("SELECT id, display_name, tone, persona, created_at FROM users WHERE id = ?",
+        S("""SELECT id, display_name, tone, persona,
+                    plan, plan_expires_at, ambassador_applied_at, created_at
+             FROM users WHERE id = ?""",
           [user_id])
     )
     return _row_to_user(rs.rows[0])
@@ -148,6 +178,65 @@ async def get_or_create_user(user_id: str, display_name: str) -> dict:
 async def update_persona(user_id: str, persona: str) -> None:
     client = _get_client()
     await client.execute(S("UPDATE users SET persona = ? WHERE id = ?", [persona, user_id]))
+
+
+# ─── アンバサダー管理 ─────────────────────────────────────────────────────────
+
+async def apply_ambassador(user_id: str) -> None:
+    """アンバサダー申請日時を記録する"""
+    client = _get_client()
+    await client.execute(
+        S("UPDATE users SET ambassador_applied_at = ? WHERE id = ?", [_now(), user_id])
+    )
+
+
+async def approve_ambassador(user_id: str, months: int) -> None:
+    """アンバサダーを承認する。months=0 は永続。"""
+    client = _get_client()
+    if months == 0:
+        expires = None
+    else:
+        from datetime import datetime, timedelta
+        expires_dt = datetime.now(_JST) + timedelta(days=months * 30)
+        expires = expires_dt.strftime("%Y-%m-%d %H:%M:%S")
+    await client.execute(
+        S("UPDATE users SET plan = 'ambassador', plan_expires_at = ?, ambassador_applied_at = NULL WHERE id = ?",
+          [expires, user_id])
+    )
+
+
+async def reject_ambassador(user_id: str) -> None:
+    """申請を却下する（申請日時をクリア）"""
+    client = _get_client()
+    await client.execute(
+        S("UPDATE users SET ambassador_applied_at = NULL WHERE id = ?", [user_id])
+    )
+
+
+async def get_ambassador_applicants() -> list[dict]:
+    """承認待ちの申請一覧を返す"""
+    client = _get_client()
+    rs = await client.execute(
+        S("""SELECT id, display_name, persona, plan, plan_expires_at,
+                    ambassador_applied_at, created_at
+             FROM users
+             WHERE ambassador_applied_at IS NOT NULL AND plan = 'free'
+             ORDER BY ambassador_applied_at ASC""")
+    )
+    return [_row_to_user(r) for r in rs.rows]
+
+
+async def get_ambassadors() -> list[dict]:
+    """承認済みアンバサダー一覧を返す"""
+    client = _get_client()
+    rs = await client.execute(
+        S("""SELECT id, display_name, persona, plan, plan_expires_at,
+                    ambassador_applied_at, created_at
+             FROM users
+             WHERE plan = 'ambassador'
+             ORDER BY display_name ASC""")
+    )
+    return [_row_to_user(r) for r in rs.rows]
 
 
 async def update_tone(user_id: str, tone: str) -> None:

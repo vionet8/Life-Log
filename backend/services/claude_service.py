@@ -500,6 +500,7 @@ async def generate_review(
     period_label: str,
     entries: list[dict],
     persona: str = "nagi",
+    is_premium: bool = False,
 ) -> str:
     if not entries:
         return "まだ記録がありません。つぶやきを始めてみましょう！"
@@ -511,6 +512,10 @@ async def generate_review(
     stats = review_stats.compute_stats(entries)
     facts_block = review_stats.stats_to_facts_block(stats)
     depth = stats["depth"]
+
+    # 詳細レポートはアンバサダー限定
+    if depth == "rich" and not is_premium:
+        depth = "medium"
 
     # ── ② 生ログ（Claudeが引用するための原文）──
     entry_lines = []
