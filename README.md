@@ -47,15 +47,50 @@ Life_log/
 
 - **Bot プラットフォーム**: LINE Messaging API
 - **バックエンド**: FastAPI (Python)
-- **DB**: SQLite（後にPostgreSQLへ移行可能）
+- **DB**: Turso (libsql)
 - **AI**: Claude API (claude-sonnet-4-6)
-- **ホスティング**: Railway / Render（予定）
+- **ホスティング**: Render
 
 ## フェーズ
 
 1. ✅ **Phase 0** — LINEプロトタイプ（テキスト）
-2. 🔲 **Phase 1** — バックエンド基盤（FastAPI + SQLite + Webhook）
-3. 🔲 **Phase 2** — つぶやき機能 実装
-4. 🔲 **Phase 3** — タスク整理 実装
-5. 🔲 **Phase 4** — 振り返り + Claude API 連携
-6. 🔲 **Phase 5** — デプロイ
+2. ✅ **Phase 1** — バックエンド基盤（FastAPI + Turso + Webhook）
+3. ✅ **Phase 2** — つぶやき機能 実装
+4. ✅ **Phase 3** — タスク整理 実装
+5. ✅ **Phase 4** — 振り返り + Claude API 連携
+6. ✅ **Phase 5** — デプロイ（Render）
+
+## Renderへのデプロイ
+
+このリポジトリには `render.yaml`（Render Blueprint）が含まれているので、Renderダッシュボードから
+「New +」→「Blueprint」で本リポジトリを選択すれば、下記の設定が自動で適用されます。
+
+```
+Build Command: pip install -r requirements.txt
+Start Command: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+Health Check Path: /health
+```
+
+Blueprintを使わず手動でWeb Serviceを作成する場合も、上記のBuild/Start Commandをそのまま設定してください。
+
+### 環境変数
+
+Renderの Environment に以下を設定します（`.env.example` 参照）。
+
+| 変数名 | 必須 | 取得先 |
+|--------|------|--------|
+| `LINE_CHANNEL_SECRET` | ✅ | LINE Developers → Messaging API |
+| `LINE_CHANNEL_ACCESS_TOKEN` | ✅ | LINE Developers → Messaging API |
+| `ANTHROPIC_API_KEY` | ✅ | Anthropic Console |
+| `TURSO_URL` | ✅ | Turso ダッシュボード |
+| `TURSO_AUTH_TOKEN` | ✅ | Turso ダッシュボード |
+| `ADMIN_KEY` | 任意 | 自分で設定（管理ページ用） |
+| `RICH_MENU_YU` / `RICH_MENU_NAGI` / `RICH_MENU_MIRAI` | 任意 | `setup_rich_menus.py` 実行後に設定 |
+
+デプロイ後、LINE Developers の Webhook URL を `https://<Renderのドメイン>/webhook` に更新してください。
+
+### スリープ対策
+
+無料プランはアクセスが一定時間ないとスリープします。LINE Webhookの応答遅延を防ぐため、
+[UptimeRobot](https://uptimerobot.com/) などで `https://<Renderのドメイン>/health` を
+5分間隔程度で定期的に叩き、起こしておくことを推奨します。

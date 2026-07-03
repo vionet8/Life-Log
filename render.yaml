@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: life-log
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: APP_ENV
+        value: production
+      - key: ADMIN_KEY
+        sync: false
+      - key: RICH_MENU_YU
+        sync: false
+      - key: RICH_MENU_NAGI
+        sync: false
+      - key: RICH_MENU_MIRAI
+        sync: false
