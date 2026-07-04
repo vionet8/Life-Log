@@ -281,7 +281,7 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         close_word = {
             "nagi":  "またいつでも話しかけてね 😊",
             "yu":    "また何かあれば。",
-            "mirai": "今日も記録できたね。また来てね。",
+            "mirai": "今日のこと、覚えておくね。また来てね。",
         }.get(persona, "またいつでも 📝")
         await line.reply(reply_token, f"{ai_reply}\n\n{close_word}")
 
