@@ -414,6 +414,56 @@ _PERSONA_CONSULT = {
 }
 
 
+_CONSULT_PHRASES: dict[str, dict[str, list[str]]] = {
+    "nagi": {
+        "受け止め": [
+            "うん、それでそれで",
+            "そっか、それは気になるね",
+            "うんうん、聞いてるよ",
+            "それ、なんかわかる気がする",
+        ],
+        "問いかけ": [
+            "それって、どういう気持ちだった？",
+            "誰かに話したことある？",
+            "それっていつからそう思ってる？",
+            "〇〇の部分、もうちょい聞いていい？",
+        ],
+    },
+    "yu": {
+        "受け止め": [
+            "それ、ちょっと引っかかるな",
+            "なるほど、それは気になる",
+        ],
+        "問いかけ": [
+            "それって、具体的にいつから？",
+            "今一番引っかかってるのはどこ？",
+            "感情の話？それとも状況の話？",
+            "〇〇について、自分ではどう思ってる？",
+        ],
+    },
+    "mirai": {
+        "受け止め": [
+            "それ、今そう感じてるんだね",
+            "そっか、今はそう見えてるんだね",
+        ],
+        "問いかけ": [
+            "それ、今どう感じてる？",
+            "理想の結果って、どんな状態？",
+            "その悩み、1年後も同じ重さで残ってそう？",
+        ],
+    },
+}
+
+
+def _format_consult_phrases(persona: str) -> str:
+    bank = _CONSULT_PHRASES.get(persona, _CONSULT_PHRASES["nagi"])
+    lines = []
+    for category, phrases in bank.items():
+        lines.append(f"◆{category}")
+        lines.extend(f"・{p}" for p in phrases)
+    return "\n".join(lines)
+
+
 async def analyze_consult_message(
     message: str,
     history: list[dict],
@@ -423,7 +473,14 @@ async def analyze_consult_message(
     相談メッセージを受け取り、ペルソナとして引き出す返答をする。
     history: [{"role": "user"|"assistant", "content": "..."}]
     """
-    system = _PERSONA_CONSULT.get(persona, _PERSONA_CONSULT["nagi"])
+    system = (
+        _PERSONA_CONSULT.get(persona, _PERSONA_CONSULT["nagi"])
+        + "\n\n【言い回しの引き出し】\n"
+        "しっくりくるものがあれば「〇〇」を相手の話の具体的な内容に置き換えて"
+        "使う。なければ同じトーンで自分で考える。リストを機械的に繰り返す"
+        "だけの不自然な返答にはしない。\n"
+        + _format_consult_phrases(persona)
+    )
     messages = history + [{"role": "user", "content": message}]
 
     resp = await _client.messages.create(

@@ -22,12 +22,6 @@ _OPENING = {
     "mirai": "今日はどうしたの？\n何か頭にあること、話してみて。",
 }
 
-_CLOSE = {
-    "yu":    "\n\n話してみてどうだった？\nまた何かあれば聞くよ。",
-    "nagi":  "\n\n話してくれてありがとう😊\nまた何かあればいつでも。",
-    "mirai": "\n\n話してくれてありがとう。\n未来の自分は、今日のこと覚えてるよ。",
-}
-
 
 async def start(reply_token: str, user: dict) -> None:
     persona = user.get("persona", "nagi")
