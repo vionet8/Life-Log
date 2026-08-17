@@ -353,3 +353,77 @@ def stats_to_facts_block(stats: dict) -> str:
             )
 
     return "\n".join(lines)
+
+
+# ─── ACTジャーナリング ────────────────────────────────────────────────────────
+
+def compute_act_stats(act_logs: list[dict]) -> dict:
+    """
+    ACTジャーナルのログから、レポートに使える確定値だけを算出する。
+
+    価値（＝進み続ける方向）は目標と違って達成で終わらないため、
+    「何回その方向を選び直したか」と「1cmの行動がどれだけ実行されたか」を見る。
+    """
+    total = len(act_logs)
+    if total == 0:
+        return {"act_count": 0, "value_counts": {}, "top_value": None,
+                "action_total": 0, "action_done": 0, "action_done_rate": None,
+                "avoid_counts": {}}
+
+    value_counts = Counter(
+        (log.get("value_text") or "").strip()
+        for log in act_logs
+        if (log.get("value_text") or "").strip()
+    )
+
+    # 動機の内訳（ステップ2の選択肢を選んだものだけ集計。自由記述は数えない）
+    avoid_counts = Counter()
+    for log in act_logs:
+        raw = (log.get("avoidance") or "")
+        if "避けるため" in raw:
+            avoid_counts["避けるため"] += 1
+        elif "近づくため" in raw:
+            avoid_counts["近づくため"] += 1
+        elif "わからない" in raw:
+            avoid_counts["わからない"] += 1
+
+    # 結果を確認済みの行動だけを分母にする（未確認は成否不明なので除外）
+    checked = [log for log in act_logs if log.get("action_done") in (1, 2)]
+    done = [log for log in checked if log.get("action_done") == 1]
+    done_rate = round(len(done) / len(checked) * 100) if checked else None
+
+    top_value = value_counts.most_common(1)[0] if value_counts else None
+
+    return {
+        "act_count": total,
+        "value_counts": dict(value_counts.most_common()),
+        "top_value": top_value,
+        "action_total": len(checked),
+        "action_done": len(done),
+        "action_done_rate": done_rate,
+        "avoid_counts": dict(avoid_counts),
+    }
+
+
+def act_stats_to_facts(act_stats: dict) -> str:
+    """ACT統計を「確定した事実」テキストにする。記録が無ければ空文字。"""
+    if not act_stats or not act_stats.get("act_count"):
+        return ""
+
+    lines = [f"・ACTジャーナル記録: {act_stats['act_count']}件"]
+
+    if act_stats["value_counts"]:
+        vc = "、".join(f"「{v}」{n}回" for v, n in act_stats["value_counts"].items())
+        lines.append(f"・選ばれた価値（進みたい方向）: {vc}")
+
+    if act_stats["avoid_counts"]:
+        ac = "、".join(f"{k} {n}回" for k, n in act_stats["avoid_counts"].items())
+        lines.append(f"・行動の動機の内訳: {ac}")
+
+    if act_stats["action_done_rate"] is not None:
+        lines.append(
+            f"・1cmの行動の実行: 確認済み{act_stats['action_total']}件中"
+            f"{act_stats['action_done']}件実行（{act_stats['action_done_rate']}%）"
+        )
+
+    return "\n".join(lines)

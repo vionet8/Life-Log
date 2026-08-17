@@ -18,7 +18,7 @@ from linebot.v3.webhooks import (
 from linebot.v3 import WebhookParser
 from backend.config import LINE_CHANNEL_SECRET
 from backend.models import database as db
-from backend.handlers import murmur, task, review, settings, profile, consult, ambassador
+from backend.handlers import murmur, task, review, settings, profile, consult, ambassador, act
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -34,6 +34,10 @@ MENU_TRIGGERS = {
     "✅ タスク整理":     "task",
     "振り返り":          "review",
     "📊 振り返り":       "review",
+    "ACTジャーナル":     "act",
+    "🧭 ACTジャーナル":  "act",
+    "アクトジャーナル":  "act",
+    "ACT":               "act",
     "設定":              "settings",
     "⚙️ 設定":          "settings",
     "ヘルプ":            "help",
@@ -45,6 +49,7 @@ MENU_TRIGGERS = {
 STATE_PREFIX_MAP = {
     "murmur":      murmur,
     "consult":     consult,
+    "act":         act,
     "task":        task,
     "review":      review,
     "settings":    settings,
@@ -132,6 +137,11 @@ _HELP_MESSAGE = {
  頭の中が整理できない、ひっかかることがある、
  そんなとき話しかけて。
 
+🧭 ACTジャーナル
+ 「ACTジャーナル」と送れば始まる。
+ 嫌な感情を消さずに抱えたまま、どっちに進むかを
+ 決める4つの問い。最後は1cmの行動を1つ選ぶ。
+
 ✅ タスク整理
  やること管理。メモ代わりに使っていい。
 
@@ -153,6 +163,11 @@ _HELP_MESSAGE = {
  なんか気になってること、誰かに話したいとき。
  ここで話して。
 
+🧭 ACTジャーナル
+ 「ACTジャーナル」って送ると始まるよ。
+ モヤモヤを消さずに持ったまま、どっちに進みたいかを
+ 見る4つの問い。最後に1cmの行動をひとつ決めるよ😊
+
 ✅ タスク整理
  やること管理。メモ代わりにも使えるよ！
 
@@ -173,6 +188,11 @@ _HELP_MESSAGE = {
  迷っていること、頭の中がぐるぐるしているとき。
  一緒に整理しよう。
 
+🧭 ACTジャーナル
+ 「ACTジャーナル」と送れば始まる。
+ 感情を消すのではなく、抱えたまま方向を確かめる
+ 4つの問い。最後に1cmの行動をひとつ選ぶ。
+
 ✅ タスク整理
  やること管理。未来の自分への申し送りとして。
 
@@ -184,9 +204,9 @@ _HELP_MESSAGE = {
 }
 
 _IDLE_NUDGE = {
-    "yu":    "何かあった？\n「つぶやく」か「相談する」から話しかけて。",
-    "nagi":  "何か書きたいことあった？😊\n「つぶやく」から記録できるよ！",
-    "mirai": "今、何か伝えたいことがある？\n「つぶやく」から始めてみて。",
+    "yu":    "何かあった？\n「つぶやく」か「相談する」から話しかけて。\n方向を決め直したいなら「ACTジャーナル」もある。",
+    "nagi":  "何か書きたいことあった？😊\n「つぶやく」から記録できるよ！\nモヤモヤの向き先を見たいなら「ACTジャーナル」もあるよ。",
+    "mirai": "今、何か伝えたいことがある？\n「つぶやく」から始めてみて。\n方向を確かめたいなら「ACTジャーナル」を。",
 }
 
 
@@ -238,6 +258,8 @@ async def _dispatch(event) -> None:
             await consult.start(reply_token, user)
         elif trigger == "task":
             await task.start(reply_token, user)
+        elif trigger == "act":
+            await act.start(reply_token, user)
         elif trigger == "review":
             await review.start(reply_token, user)
         elif trigger == "settings":
@@ -286,5 +308,5 @@ async def _dispatch(event) -> None:
     await line.reply(
         reply_token,
         _IDLE_NUDGE.get(persona, _IDLE_NUDGE["nagi"]),
-        ["📝 つぶやく", "💬 相談する"],
+        ["📝 つぶやく", "💬 相談する", "🧭 ACTジャーナル"],
     )

@@ -531,6 +531,171 @@ async def summarize_consult(history: list[dict]) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACTジャーナリング
+#
+# 人生の後半で効かなくなる「第1弾の燃料（承認・獲得・拡大）」から、
+# 「第2弾の燃料（どの方向へ、どんな態度で進むか＝価値）」への乗り換えを支える。
+# 不快な感情を消すのではなく、抱えたまま価値の方向へ進む＝心理的柔軟性を育てる。
+# ══════════════════════════════════════════════════════════════════════════════
+
+_ACT_FRAMEWORK = """\
+【ACT（アクセプタンス＆コミットメント・セラピー）の前提】
+・不快な感情は消すべき敵ではない。抱えたまま、大切な方向へ進めばいい。
+・感情を減らす提案（気晴らし・ポジティブ変換・言い換えによる緩和）はしない。
+・「体験の回避」（嫌な感情を避けるための行動）を見つけても責めない。気づけたこと自体を事実として置く。
+・目標（達成して終わるもの）ではなく、価値（進み続ける方向・態度）に光を当てる。
+・大切なものへ近づく行動には痛みが伴う。痛みを取り除こうとせず、引き受ける姿勢を尊重する。
+・深く考えさせるより、小さく体現し続けることを支える。行動が主役。
+
+【絶対にやらないこと】
+・「大丈夫」「きっとうまくいく」などの慰め・保証
+・「〜すべき」「〜した方がいい」という助言・解決策の提示
+・「それは不安ですね」のような感情のラベリングや診断
+・「すごい」「立派」「偉い」といった評価
+・4つの記録を要約して並べ直すだけの返答
+"""
+
+_PERSONA_ACT = {
+    "yu": """\
+あなたは「ユウ」。30代くらいの頼れる先輩。論理派だけど冷たくない。
+ACTジャーナルの記録を受け取り、その人が自分の方向を確認できる言葉を返す。
+
+【返答スタイル】
+価値と行動のつながりを短く言い当てる。整理して視点を渡す。
+対等な立場。上から評価・断定しない。「〜ってことだよね」は確認のニュアンスで。
+短い。テンポよく。
+""",
+
+    "nagi": """\
+あなたは「ナギ」。昔からの友人。純粋に人に興味がある。
+ACTジャーナルの記録を受け取り、その人が自分の方向を確認できる言葉を返す。
+
+【返答スタイル】
+答えを持ち込まない。書かれた言葉の中で、いちばん本人らしいところに素直に反応する。
+「〜だね」「〜じゃん」の口語。語尾はやわらかく。絵文字はたまに。
+""",
+
+    "mirai": """\
+あなたは「ミライ」。ユーザー自身の未来の声。
+ACTジャーナルの記録を受け取り、その人が自分の方向を確認できる言葉を返す。
+
+【返答スタイル】
+少し先の時間から静かに見ている。批判しない。
+この1cmの積み重ねが向かう先を、静かに置くだけ。教え諭さない。指示・命令しない。
+""",
+}
+
+_AVOID_HINT = {
+    "avoid":   "動機は「避けるため」寄りだと本人が見ている（＝体験の回避に気づいている状態）",
+    "toward":  "動機は「近づくため」寄りだと本人が見ている",
+    "unknown": "動機はまだ本人にも分かっていない",
+}
+
+
+def _system_act(persona: str) -> str:
+    return _PERSONA_ACT.get(persona, _PERSONA_ACT["nagi"]) + "\n" + _ACT_FRAMEWORK
+
+
+async def analyze_act_journal(log: dict, persona: str = "nagi") -> str:
+    """
+    ACTジャーナル4ステップの記録を受け取り、ペルソナとして短く返す。
+    log: {"acceptance", "avoidance", "value_text", "action", "avoid_kind"}
+    """
+    avoid_hint = _AVOID_HINT.get(log.get("avoid_kind", ""), "")
+    hint_line = f"（参考：{avoid_hint}）" if avoid_hint else ""
+
+    prompt = f"""\
+ユーザーが今日のACTジャーナルを書きました。
+
+1. いま在る感情（消さずに認めたもの）：「{log.get('acceptance', '')}」
+2. 最近の行動の動機：「{log.get('avoidance', '')}」{hint_line}
+3. 進みたい方向・態度（価値）：「{log.get('value_text', '')}」
+4. 今日選ぶ1cmの行動：「{log.get('action', '')}」
+
+この4つを受け取って、あなたらしく返してください。
+
+【手順（この順番で考える）】
+1. 4つのうち、いちばん動きがあるところを1つだけ選ぶ（＝フォーカス）。
+   全体をまとめようとしない
+2. 感情（1）は解決しない。抱えたままでいいものとしてそのまま置く
+3. 価値（3）と1cmの行動（4）のつながりに一度だけ触れる。
+   ずれているように見えても指摘して直させない。本人の選択として扱う
+4. 動機が「避けるため」だったときは責めない。それに気づけていることを事実として置く
+5. 最後は行動をそっと後押しする一言。命令にしない
+
+【ルール】
+・返答文のみ。120文字以内
+・問いかけは最大1つ。自然なら問いかけなくていい
+・記号・区切り線は使わない
+"""
+
+    message = await _client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=250,
+        system=_system_act(persona),
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return message.content[0].text.strip()
+
+
+_ACTION_FALLBACK = [
+    "家族に短い連絡を入れる",
+    "3割だけ手をつける",
+    "気の進まない依頼を1つ断る",
+]
+
+# LINEクイックリプライのラベル上限（20文字）に収まる長さ
+_ACTION_MAX_LEN = 18
+
+
+async def suggest_act_actions(
+    value_text: str,
+    acceptance: str = "",
+    persona: str = "nagi",
+) -> list[str]:
+    """
+    「1cmの行動が思いつかない」ときに、価値の方向へ進む最小の行動を3つ提案する。
+    失敗時は汎用の候補を返す。
+    """
+    prompt = f"""\
+ユーザーが大切にしたい方向（価値）：「{value_text}」
+いま抱えている感情：「{acceptance or '（記録なし）'}」
+
+この方向へ「1cmだけ」近づく最小の行動を3つ提案してください。
+
+【条件】
+・今日この瞬間に実行できる大きさにする。完了・達成を目指さない
+  （良い例：家族に短い連絡を入れる／断りの連絡を1つ入れる／完成させず3割だけ手をつける）
+・感情を晴らすため・気を紛らわすための行動にはしない（それは体験の回避）
+・人生を変える大きな決断や、環境を変える提案はしない
+・それぞれ{_ACTION_MAX_LEN}文字以内。動詞で終わる短い文にする
+
+出力は JSON 配列のみ。例: ["家族に短い連絡を入れる","3割だけ手をつける","断りの連絡を1つ入れる"]
+解説や他の文章は一切書かないこと。
+"""
+    try:
+        resp = await _client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            system=_system_act(persona),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = resp.content[0].text.strip()
+        start, end = text.find("["), text.rfind("]")
+        actions: list[str] = []
+        if start != -1 and end != -1:
+            for item in json.loads(text[start:end + 1]):
+                if isinstance(item, str) and item.strip():
+                    actions.append(item.strip()[:_ACTION_MAX_LEN])
+        if actions:
+            return actions[:3]
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("suggest_act_actions failed")
+    return list(_ACTION_FALLBACK)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # つぶやき返答
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -694,8 +859,9 @@ async def generate_review(
     entries: list[dict],
     persona: str = "nagi",
     is_premium: bool = False,
+    act_logs: list[dict] | None = None,
 ) -> str:
-    if not entries:
+    if not entries and not act_logs:
         return "まだ記録がありません。つぶやきを始めてみましょう！"
 
     murmur_entries = [e for e in entries if e.get("entry_type", "murmur") == "murmur"]
@@ -705,6 +871,12 @@ async def generate_review(
     stats = review_stats.compute_stats(entries)
     facts_block = review_stats.stats_to_facts_block(stats)
     depth = stats["depth"]
+
+    act_logs = act_logs or []
+    act_stats = review_stats.compute_act_stats(act_logs)
+    act_facts = review_stats.act_stats_to_facts(act_stats)
+    if act_facts:
+        facts_block = facts_block + "\n" + act_facts
 
     # 詳細レポートはアンバサダー限定
     if depth == "rich" and not is_premium:
@@ -738,6 +910,24 @@ async def generate_review(
         consult_section = f"""
 【相談記録（{len(consult_entries)}件）】
 {consult_text}
+"""
+
+    # ACTジャーナル（価値と1cmの行動）
+    _DONE_JP = {1: "実行した", 2: "実行しなかった/変えた"}
+    act_lines = []
+    for log in act_logs:
+        result = _DONE_JP.get(log.get("action_done"), "結果は未確認")
+        act_lines.append(
+            f"[{(log.get('created_at') or '')[:10]}] "
+            f"感情:{log.get('acceptance', '')} ／ 動機:{log.get('avoidance', '')} ／ "
+            f"価値:{log.get('value_text', '')} ／ 1cmの行動:{log.get('action', '')}（{result}）"
+        )
+
+    act_section = ""
+    if act_lines:
+        act_section = f"""
+【ACTジャーナル記録（{len(act_lines)}件）】
+{chr(10).join(act_lines)}
 """
 
     # ── ③ データ深度ごとに構成を変える（肩透かし防止）──
@@ -827,6 +1017,18 @@ async def generate_review(
 """
         token_budget = 2000
 
+    # ACT記録があるときだけ、価値と行動のセクションを足す
+    if act_lines:
+        structure += """
+＋ 🧭 価値と1cmの行動（ACTジャーナルの記録がある場合のみ追加）
+   ・この期間に選ばれた価値（進みたい方向）を、【確定した数値】の回数を使って示す。
+   ・価値と、実際に選ばれた1cmの行動がつながっているかを、記録を引用して読む。
+   ・行動が実行されていなくても責めない。実行率は事実として置くだけにする。
+   ・感情（ステップ1）を消す・和らげる方向の提案はしない。抱えたまま進んだ形跡を拾う。
+   ・動機が「避けるため」に偏っていた場合は、それを欠点として書かず、
+     「何から離れようとしていたか」が見えていること自体を材料として扱う。
+"""
+
     prompt = f"""\
 以下は「{period_label}」の記録です。
 
@@ -835,7 +1037,7 @@ async def generate_review(
 
 【つぶやき記録（{len(murmur_entries)}件）】
 {entries_text}
-{consult_section}
+{consult_section}{act_section}
 # 指示
 
 LINEで送る振り返りレポートを作成してください。

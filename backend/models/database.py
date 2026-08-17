@@ -81,6 +81,23 @@ _SCHEMA = [
         context    TEXT NOT NULL DEFAULT '{}',
         updated_at TEXT DEFAULT (datetime('now'))
     )""",
+    # ACTジャーナリング（4ステップ）の構造化ログ
+    #   acceptance : ステップ1 いま在る感情（消さずに認めたもの）
+    #   avoidance  : ステップ2 行動の動機（避けるため / 近づくため）
+    #   value_text : ステップ3 価値＝進みたい方向・態度
+    #   action     : ステップ4 1cmの行動
+    #   action_done: 0=未確認 / 1=やった / 2=やらなかった・変えた
+    """CREATE TABLE IF NOT EXISTS act_logs (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id     TEXT NOT NULL,
+        entry_id    INTEGER,
+        acceptance  TEXT NOT NULL DEFAULT '',
+        avoidance   TEXT NOT NULL DEFAULT '',
+        value_text  TEXT NOT NULL DEFAULT '',
+        action      TEXT NOT NULL DEFAULT '',
+        action_done INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT DEFAULT (datetime('now'))
+    )""",
 ]
 
 
@@ -394,6 +411,128 @@ async def get_entries(user_id: str, since: Optional[str] = None) -> list[dict]:
                   [user_id])
             )
     return [_row_to_entry(r) for r in rs.rows]
+
+
+# ─── ACTジャーナリング ────────────────────────────────────────────────────────
+
+def _row_to_act_log(row) -> dict:
+    return {
+        "id":          row["id"],
+        "user_id":     row["user_id"],
+        "entry_id":    row["entry_id"],
+        "acceptance":  row["acceptance"],
+        "avoidance":   row["avoidance"],
+        "value_text":  row["value_text"],
+        "action":      row["action"],
+        "action_done": row["action_done"],
+        "created_at":  row["created_at"],
+    }
+
+
+_ACT_COLS = """id, user_id, entry_id, acceptance, avoidance,
+               value_text, action, action_done, created_at"""
+
+
+async def create_act_log(
+    user_id: str,
+    acceptance: str,
+    avoidance: str,
+    value_text: str,
+    action: str,
+    entry_id: Optional[int] = None,
+) -> int:
+    """ACTジャーナル1回分（4ステップ）を保存する。"""
+    now = _now()
+    client = _get_client()
+    rs = await client.execute(
+        S("""
+          INSERT INTO act_logs
+              (user_id, entry_id, acceptance, avoidance, value_text, action, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          """,
+          [user_id, entry_id, acceptance, avoidance, value_text, action, now])
+    )
+    return rs.last_insert_rowid
+
+
+async def get_act_logs(user_id: str, since: Optional[str] = None, limit: int = 100) -> list[dict]:
+    """since: ISO日付文字列 (YYYY-MM-DD)。新しい順に返す。"""
+    client = _get_client()
+    if since:
+        rs = await client.execute(
+            S(f"""SELECT {_ACT_COLS} FROM act_logs
+                  WHERE user_id = ? AND created_at >= ?
+                  ORDER BY created_at DESC LIMIT ?""",
+              [user_id, since, limit])
+        )
+    else:
+        rs = await client.execute(
+            S(f"""SELECT {_ACT_COLS} FROM act_logs
+                  WHERE user_id = ? ORDER BY created_at DESC LIMIT ?""",
+              [user_id, limit])
+        )
+    return [_row_to_act_log(r) for r in rs.rows]
+
+
+async def get_pending_act_log(user_id: str) -> dict | None:
+    """
+    まだ結果を確認していない「前回の1cmの行動」を返す。
+    同日中の記録は対象外（まだ実行する時間があるため）。
+    """
+    today = datetime.now(_JST).strftime("%Y-%m-%d")
+    client = _get_client()
+    rs = await client.execute(
+        S(f"""SELECT {_ACT_COLS} FROM act_logs
+              WHERE user_id = ? AND action_done = 0 AND substr(created_at, 1, 10) < ?
+              ORDER BY created_at DESC LIMIT 1""",
+          [user_id, today])
+    )
+    return _row_to_act_log(rs.rows[0]) if rs.rows else None
+
+
+async def set_act_action_done(user_id: str, log_id: int, done: int) -> None:
+    """1cmの行動の結果を記録する。done: 1=やった / 2=やらなかった・変えた"""
+    client = _get_client()
+    await client.execute(
+        S("UPDATE act_logs SET action_done = ? WHERE id = ? AND user_id = ?",
+          [done, log_id, user_id])
+    )
+
+
+async def clear_pending_act_logs(user_id: str, before_id: int) -> None:
+    """
+    確認をスキップされた古い未確認ログを「確認済み扱い」にする。
+    毎回いちばん古い1件を蒸し返さないための後始末。
+    """
+    client = _get_client()
+    await client.execute(
+        S("UPDATE act_logs SET action_done = 2 WHERE user_id = ? AND action_done = 0 AND id <= ?",
+          [user_id, before_id])
+    )
+
+
+async def delete_act_log(user_id: str, log_id: int) -> bool:
+    """指定ACTログを削除する。自分のログのみ削除可。"""
+    client = _get_client()
+    rs = await client.execute(
+        S("SELECT id FROM act_logs WHERE id = ? AND user_id = ?", [log_id, user_id])
+    )
+    if not rs.rows:
+        return False
+    await client.execute(S("DELETE FROM act_logs WHERE id = ?", [log_id]))
+    return True
+
+
+async def get_recent_act_values(user_id: str, limit: int = 2) -> list[str]:
+    """直近で選ばれた価値（重複なし）を新しい順に返す。"""
+    client = _get_client()
+    rs = await client.execute(
+        S("""SELECT value_text, MAX(created_at) AS latest FROM act_logs
+             WHERE user_id = ? AND value_text != ''
+             GROUP BY value_text ORDER BY latest DESC LIMIT ?""",
+          [user_id, limit])
+    )
+    return [r["value_text"] for r in rs.rows]
 
 
 # ─── タスク ───────────────────────────────────────────────────────────────────

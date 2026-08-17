@@ -17,6 +17,7 @@
 | ② | タスク整理 | 未完了一覧・追加・完了・削除 |
 | ③ | 振り返り | 週/月/年サマリー + 事実/データ分析/AIの気づき |
 | ④ | 設定 | 口調選択（優しいモード / 丁寧モード） |
+| ⑤ | ACTジャーナル | 感情を消さずに「価値（進む方向）」と「1cmの行動」を決める4ステップ |
 
 ## ディレクトリ構成（予定）
 
@@ -24,7 +25,8 @@
 Life_log/
 ├── README.md
 ├── docs/
-│   └── prototype_line_chat.md   # LINEトーク画面プロトタイプ
+│   ├── prototype_line_chat.md   # LINEトーク画面プロトタイプ
+│   └── act_journaling.md        # ⑤ ACTジャーナルの背景・設計
 ├── backend/
 │   ├── main.py                  # FastAPI エントリポイント
 │   ├── webhook.py               # LINE Messaging API Webhook
@@ -32,13 +34,18 @@ Life_log/
 │   │   ├── murmur.py            # ① つぶやきハンドラ
 │   │   ├── task.py              # ② タスク整理ハンドラ
 │   │   ├── review.py            # ③ 振り返りハンドラ
-│   │   └── settings.py          # ④ 設定ハンドラ
+│   │   ├── settings.py          # ④ 設定ハンドラ
+│   │   └── act.py               # ⑤ ACTジャーナルハンドラ
 │   ├── models/
 │   │   └── database.py          # SQLite スキーマ
 │   ├── services/
 │   │   ├── claude_service.py    # Claude API 呼び出し
+│   │   ├── review_stats.py      # 振り返り用の決定論的統計エンジン
 │   │   └── line_service.py      # LINE API ラッパー
 │   └── config.py                # 環境変数
+├── scripts/
+│   ├── test_review_quality.py   # 振り返りレポートの品質検証
+│   └── test_act_flow.py         # ACTジャーナルの状態遷移テスト
 ├── .env.example
 └── requirements.txt
 ```
@@ -59,6 +66,29 @@ Life_log/
 4. ✅ **Phase 3** — タスク整理 実装
 5. ✅ **Phase 4** — 振り返り + Claude API 連携
 6. ✅ **Phase 5** — デプロイ（Render）
+7. ✅ **Phase 6** — ACTジャーナル（価値と1cmの行動）実装
+
+## ACTジャーナル
+
+「承認・獲得・拡大」が動力源にならなくなったときのために、
+**感情を消さずに抱えたまま、大切な方向へ進む** ための4ステップを用意しています。
+
+1. **アクセプタンス** — 今ある感情を、解決せずそのまま観察する
+2. **体験の回避チェック** — その行動は「避けるため」か「近づくため」か
+3. **価値の明確化** — 目標ではなく、進み続けたい方向・態度を決める
+4. **コミット型アクション** — その方向に1cmだけ近づく最小の行動を1つ選ぶ
+
+次回の開始時に前回の1cmの行動の結果を確認し、振り返りレポートには
+「選ばれた価値」と「1cmの行動の実行率」が反映されます。
+
+起動はテキストで `ACTジャーナル`（`ACT` / `アクトジャーナル` でも可）。
+背景と設計は [docs/act_journaling.md](docs/act_journaling.md) を参照してください。
+
+動作確認：
+
+```
+python -m scripts.test_act_flow
+```
 
 ## Renderへのデプロイ
 

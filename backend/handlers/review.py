@@ -93,6 +93,7 @@ async def _generate_and_deliver(
     period_ja: str,
     entries: list,
     premium: bool = False,
+    act_logs: list | None = None,
 ) -> None:
     """
     Claude でレポートを生成し push で届ける。
@@ -108,6 +109,7 @@ async def _generate_and_deliver(
             entries=entries,
             persona=user.get("persona", "nagi"),
             is_premium=premium,
+            act_logs=act_logs or [],
         )
 
         # 完了時点のセッションを確認
@@ -170,6 +172,13 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
             await line.reply(reply_token, _ERROR.get(persona, _ERROR["nagi"]))
             return
 
+        # ACTジャーナルは取得に失敗してもレポート自体は出す
+        try:
+            act_logs = await db.get_act_logs(user["id"], since=since)
+        except Exception as e:
+            logger.warning(f"get_act_logs failed for user {user['id']}: {e}")
+            act_logs = []
+
         thinking_msg = _THINKING.get(persona, _THINKING["nagi"]).format(period_ja=period_ja)
 
         # ① セッションを generating に移して即座に返信
@@ -177,7 +186,9 @@ async def handle(reply_token: str, user: dict, text: str, state: str, context: d
         await line.reply(reply_token, thinking_msg)
 
         # ② バックグラウンドでレポート生成・配信（ここで return、webhook は解放される）
-        asyncio.create_task(_generate_and_deliver(user, text, period_ja, entries, is_premium(user)))
+        asyncio.create_task(
+            _generate_and_deliver(user, text, period_ja, entries, is_premium(user), act_logs)
+        )
 
     # ── 生成中（Claude 処理待ち） ─────────────────────────────────────────────
     elif state == "review_generating":

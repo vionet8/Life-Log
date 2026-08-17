@@ -150,11 +150,16 @@ async def _get_topic(user_id: str, current_location: str, current_weather: str) 
 
     ※ 同日エントリーは「当たり前」なので比較対象にしない
     """
-    last = await db.get_last_entries(user_id, limit=5)
+    last = await db.get_last_entries(user_id, limit=8)
     today_str = _now_jst().strftime("%Y-%m-%d")
 
-    # 今日以外の直近エントリーだけ比較対象にする
-    prev_entries = [e for e in last if e.get("created_at", "")[:10] != today_str]
+    # 今日以外の直近つぶやきだけ比較対象にする
+    # （相談・ACTジャーナルの記録は場所・天気・点数を持たないので除外）
+    prev_entries = [
+        e for e in last
+        if e.get("created_at", "")[:10] != today_str
+        and e.get("entry_type", "murmur") == "murmur"
+    ]
 
     # Tier 1: 前回（別日）スコアが低かった
     if prev_entries and prev_entries[0].get("score") is not None and prev_entries[0]["score"] <= 60:
